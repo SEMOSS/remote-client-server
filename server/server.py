@@ -6,9 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 import argparse
 
 request_queue = asyncio.Queue()
-pending_connections = asyncio.Queue()
-queue_positions = {}
 thread_pool = ThreadPoolExecutor(max_workers=4)
+semaphore = asyncio.Semaphore(1)  # Amount of concurrent requests allowed to utilize GPU
 
 
 async def process_queue():
@@ -31,19 +30,20 @@ async def process_queue():
 
             image_gen = ImageGen()
             try:
-                response, chunks = await asyncio.get_event_loop().run_in_executor(
-                    thread_pool,
-                    image_gen.generate_image,
-                    prompt,
-                    consistency_decoder,
-                    negative_prompt,
-                    guidance_scale,
-                    num_inference_steps,
-                    height,
-                    width,
-                    seed,
-                    file_name,
-                )
+                async with semaphore:
+                    response, chunks = await asyncio.get_event_loop().run_in_executor(
+                        thread_pool,
+                        image_gen.generate_image,
+                        prompt,
+                        consistency_decoder,
+                        negative_prompt,
+                        guidance_scale,
+                        num_inference_steps,
+                        height,
+                        width,
+                        seed,
+                        file_name,
+                    )
             except Exception as e:
                 response = {"error": str(e)}
                 print("Error processing request:", e)
@@ -71,7 +71,7 @@ async def send_keep_alive(websocket):
             await asyncio.sleep(5)
             await websocket.send(json.dumps({"status": "processing"}))
     except asyncio.CancelledError:
-        print("Task finshed properly.")
+        print("Keep-alive task finished properly.")
         pass
 
 
@@ -105,7 +105,6 @@ async def update_queue_positions():
 
 async def main(host="0.0.0.0", port=8888):
     asyncio.create_task(process_queue())
-
     asyncio.create_task(update_queue_positions())
 
     server = await websockets.serve(

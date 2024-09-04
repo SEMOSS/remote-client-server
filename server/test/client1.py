@@ -9,7 +9,7 @@ async def websocket_client():
     uri = "ws://localhost:8888"
     async with websockets.connect(uri) as websocket:
         request = {
-            "prompt": "A scenic mountain landscape.",
+            "prompt": "A scenic river landscape.",
             "file_name": f"client{CLIENT_NUMBER}",
         }
         request_data = json.dumps(request)
