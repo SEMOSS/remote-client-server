@@ -1,0 +1,7 @@
+name: grpc
+dependencies:
+  - numpy==1.24.3
+  - idna
+  - pyyaml
+  - filelock
+  - sympy
