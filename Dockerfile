@@ -20,13 +20,20 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-ENV PYTHONPATH="/app/server"
+ENV PYTHONPATH="/app" 
+
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
-ENV HOST=0.0.0.0
-ENV PORT=8888
+ENV TCP_HOST=0.0.0.0
+ENV TCP_PORT=8888
 
-EXPOSE ${PORT}
+ENV HTTP_HOST=0.0.0.0
+ENV HTTP_PORT=8080
 
-CMD ["sh", "-c", "python3 server/server.py --host $HOST --port $PORT"]
+ENV TYPE=image
+
+EXPOSE ${TCP_PORT}
+EXPOSE ${HTTP_PORT}
+
+CMD ["sh", "-c", "python3 tcp_server/server.py --host $TCP_HOST --port $TCP_PORT & python3 http_server/main.py"]

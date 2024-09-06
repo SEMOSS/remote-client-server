@@ -29,11 +29,11 @@ python server/server.py
 
 ## Docker
 ```bash
-docker build -t imagegen-tcp-server .
+docker build -t remote-client-server .
 ```
 
 ```bash
-docker run -p 8888:8888 -e HOST=0.0.0.0 -e PORT=8888 --gpus all --name imagegen-tcp-server imagegen-tcp-server
+docker run -p 8888:8888 -e HOST=0.0.0.0 -e PORT=8888 --gpus all --name remote-client-server remote-client-server
 ```
 
 ## PyTorch/CUDA
@@ -41,3 +41,10 @@ docker run -p 8888:8888 -e HOST=0.0.0.0 -e PORT=8888 --gpus all --name imagegen-
 
 ## Testing
 - You can test the ImageGen class directly using the `app/test/test_local_image_dl.py` script.
+
+## HTTP Server
+- HTTP Server is a FastAPI application that can be run using the `http_server/main.py` script.
+
+### Access API Documentation
+- `http://127.0.0.1:8000/docs` for Swagger UI documentation.
+- `http://127.0.0.1:8000/redoc` for ReDoc documentation.
