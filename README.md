@@ -50,15 +50,12 @@ docker run -p 8888:8888 -e TYPE=image -e HOST=0.0.0.0 -e PORT=8888 --gpus all --
 ## PyTorch/CUDA
 - You can test your local PyTorch/CUDA installation by using the `utils/torch_test.ipynb` notebook.
 
-## Testing
-- You can test the ImageGen class directly using the `app/test/test_local_image_dl.py` script.
-
 ## Access API Documentation
 - `http://127.0.0.1:8888/docs` for Swagger UI documentation.
 - `http://127.0.0.1:8888/redoc` for ReDoc documentation.
 
 ## Access API Endpoints
-- `ws://localhost:8888/api/image_gen` - Gen-AI WebSocket endpoint.
+- `ws://localhost:8888/api/generate` - Gen-AI WebSocket endpoint.
 
 - `http://localhost:8888/api/gpu` - GPU status endpoint (Returns whether the PyTorch can access GPU on the container).
 
