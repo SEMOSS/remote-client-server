@@ -79,4 +79,5 @@ docker run -p 8888:8888 -e TYPE=image -e HOST=0.0.0.0 -e PORT=8888 --gpus all --
 - [ ] Update ImageGen class to use generic pipeline and abstract class for different image generation models.
 - [ ] Update the generation route for dynamically type checking the request for different models.
 - [ ] Add semaphore and Docker env for setting the number of conncurrent operations utilzing GPU (currently set to 1).
+- [ ] Look into multi-stage Docker builds for reducing image size.
 
