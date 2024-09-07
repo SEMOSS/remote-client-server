@@ -5,6 +5,9 @@ from typing import Optional
 from diffusers import PixArtAlphaPipeline
 from io import BytesIO
 import base64
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ImageGen:
@@ -18,11 +21,11 @@ class ImageGen:
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
-
         model_files_path = os.path.join(script_dir, "..", "..", "model_files")
 
         self.model_name = model_name
 
+        # TODO: Change this to generic pipeline
         self.pipe = PixArtAlphaPipeline.from_pretrained(
             # If you want to download the model files dynamically, use `self.model_name` instead of the model directory below
             model_files_path,
@@ -47,10 +50,12 @@ class ImageGen:
         ] = "generated_image.png",  # JUST FOR TESTING -- useful to verify images from different clients
     ) -> dict:
 
+        logger.info("Generating image...")
+
         if self.device.type == "cuda":
-            print("Using GPU for image generation.")
+            logger.info("Using GPU for image generation.")
         else:
-            print("Using CPU for image generation.")
+            logger.info("Using CPU for image generation.")
 
         # If using DALL-E 3 Consistency Decoder.. This takes a long time..
         # Varitaional Autoencoder (VAE) enhances performance of image generation pipeline
@@ -108,7 +113,6 @@ class ImageGen:
         if base64_str is None or base64_str == "":
             base64_str = "There was a problem converting the image to base64."
 
-        # I have to chunk the base64 string because it's too large to send in one go
         chunk_size = 64 * 1024  # 64KB chunks
         chunks = [
             base64_str[i : i + chunk_size]

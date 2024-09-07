@@ -1,4 +1,3 @@
-protobuf
 accelerate
 pydantic
 pillow
@@ -10,7 +9,6 @@ numpy
 requests
 SentencePiece
 transformers
-websockets
 uvicorn
 
 paddleocr
