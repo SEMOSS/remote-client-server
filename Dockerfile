@@ -32,4 +32,4 @@ EXPOSE ${PORT}
 RUN adduser --system --no-create-home appuser
 USER appuser
 
-CMD ["sh", "-c", "python3 server.py --host $HOST --port $PORT --type $TYPE"]
+CMD ["sh", "-c", "python3 server/main.py  --host $HOST --port $PORT --type $TYPE"]
