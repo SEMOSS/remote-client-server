@@ -1,0 +1,23 @@
+name: Docker Build
+on:
+  workflow_dispatch:
+
+jobs:
+  docker_build_dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set date environment variable
+        run: echo "date=$(date '+%Y-%m-%d')" >> $GITHUB_ENV"
+      - name: Docker Build Dev
+        run: |
+          export DOCKER_TLS_CERTDIR=""
+          ls -lah
+          pwd
+          docker login ${{ vars.DOCKER_DELOITTE }} -u ${{ secrets.DOCKER_USER}} -p ${{ secrets.DOCKER_PASS}}
+          docker login ${{ vars.DOCKER_SEMOSS }} -u ${{ secrets.SEMOSS_DOCKER_USER}} -p ${{ secrets.SEMOSS_DOCKER_PASS}}
+          docker build . -t ${{ vars.DOCKER_DELOITTE }}/genai/remote-client-server:$date-dev
+          docker tag ${{ vars.DOCKER_DELOITTE }}/genai/remote-client-server:$date-dev ${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server:$date-dev
+          docker push ${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server:$date-dev
+          docker push  ${{ vars.DOCKER_DELOITTE }}/genai/remote-client-server:$date-dev
