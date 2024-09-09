@@ -3,14 +3,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  docker_build_dev:
+  docker_build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Set date environment variable
         run: echo "date=$(date '+%Y-%m-%d')" >> $GITHUB_ENV
-      - name: Docker Build Dev
+      - name: Docker Build
         run: |
           export DOCKER_TLS_CERTDIR=""
           ls -lah
