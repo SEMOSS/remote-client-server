@@ -5,6 +5,7 @@ from typing import Dict, Any
 from gaas.image_gen import ImageGen
 import logging
 import concurrent.futures
+from starlette.websockets import WebSocketDisconnect, WebSocketState
 
 logger = logging.getLogger(__name__)
 
@@ -26,43 +27,80 @@ class QueueManager:
 
     async def process_jobs(self):
         while True:
-            self.current_job = await self.queue.get()
+            try:
+                self.current_job = await asyncio.wait_for(self.queue.get(), timeout=1.0)
+            except asyncio.TimeoutError:
+                continue
+
             job_id, websocket, request = self.current_job
-            await self.update_queue_positions()
 
             try:
+                await self.update_queue_positions()
+
+                if websocket.client_state == WebSocketState.DISCONNECTED:
+                    logger.info(f"Client disconnected for job {job_id}. Skipping.")
+                    continue
+
                 async with self.lock:
                     self.job_status[job_id] = "processing"
                 logger.info(f"Processing job {job_id} for request: {request}")
-                await websocket.send_json(
-                    {"status": "processing", "message": "Generating image..."}
-                )
 
-                # Running image generation in a separate thread
-                loop = asyncio.get_running_loop()
-                response, chunks = await loop.run_in_executor(
-                    self.executor, self.model_switch, request
-                )
-
-                await websocket.send_json(response)
-                for i, chunk in enumerate(chunks):
+                try:
                     await websocket.send_json(
-                        {"chunk_index": i, "total_chunks": len(chunks), "data": chunk}
+                        {"status": "processing", "message": "Generating image..."}
                     )
 
-                await websocket.send_json({"status": "complete"})
-                async with self.lock:
-                    self.job_status[job_id] = "complete"
-            except Exception as e:
-                logger.error(f"Error processing job {job_id}: {e}")
-                await websocket.send_json({"error": str(e)})
-                async with self.lock:
-                    self.job_status[job_id] = "error"
+                    # Running image generation in a separate thread
+                    loop = asyncio.get_running_loop()
+                    response, chunks = await asyncio.wait_for(
+                        loop.run_in_executor(self.executor, self.model_switch, request),
+                        timeout=90,
+                    )
 
-            self.current_job = None
-            del self.websocket_map[job_id]
-            self.queue.task_done()
-            await self.update_queue_positions()
+                    await websocket.send_json(response)
+                    for i, chunk in enumerate(chunks):
+                        await websocket.send_json(
+                            {
+                                "chunk_index": i,
+                                "total_chunks": len(chunks),
+                                "data": chunk,
+                            }
+                        )
+
+                    await websocket.send_json({"status": "complete"})
+                    async with self.lock:
+                        self.job_status[job_id] = "complete"
+                except WebSocketDisconnect:
+                    logger.info(f"WebSocket disconnected for job {job_id}")
+                    async with self.lock:
+                        self.job_status[job_id] = "disconnected"
+                except asyncio.TimeoutError:
+                    logger.error(f"Job {job_id} timed out")
+                    async with self.lock:
+                        self.job_status[job_id] = "timeout"
+                except Exception as e:
+                    logger.error(f"Error processing job {job_id}: {e}")
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        await websocket.send_json({"error": str(e)})
+                    async with self.lock:
+                        self.job_status[job_id] = "error"
+
+            finally:
+                self.current_job = None
+                if job_id in self.websocket_map:
+                    del self.websocket_map[job_id]
+                self.queue.task_done()
+                await self.update_queue_positions()
+
+    async def remove_job(self, job_id: str):
+        async with self.lock:
+            if job_id in self.job_status:
+                del self.job_status[job_id]
+            if job_id in self.websocket_map:
+                del self.websocket_map[job_id]
+
+        # Remove the job from the queue
+        self.queue._queue = [item for item in self.queue._queue if item[0] != job_id]
 
     async def update_queue_positions(self):
         for i, (job_id, _, _) in enumerate(self.queue._queue):
