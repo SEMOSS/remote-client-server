@@ -7,7 +7,10 @@ This server uses a queue to manage GPU consumption. The queue accepts the websoc
 This is currently setup to only run a single type of model at a time. Please see the Adding New Models section for more information on how to add new models.
 
 ## Current Supported Models
-- ImageGen - PixArt-alpha/PixArt-XL-2-1024-MS
+The following models are currently supported. Use the `MODEL` environment variable to specify which model to load by including the value of the key value pair of the supported models below.
+
+- Image Generation 
+    - PixArt-alpha/PixArt-XL-2-1024-MS : `pixart`
 
 ## Local Installation (Assumes Windows w/ Anaconda)
 Running PyTorch with CUDA on Windows can be a bit tricky and the steps may vary based on your system configuration. The following steps should help you get started.
@@ -20,10 +23,13 @@ Running PyTorch with CUDA on Windows can be a bit tricky and the steps may vary 
 - conda env update -f environment.yml
 - pip install -r requirements.txt
 
+## PyTorch/CUDA
+- You can test your local PyTorch/CUDA installation by using the `utils/torch_test.ipynb` notebook.
+
 ## Downloading Model Files
-- The model files for PixArt-alpha/PixArt-XL-2-1024-MS can be downloaded locally using the `utils/dl_model_files.py` script. The script will download the model files to the `models_files` directory.
-- This prevents the Docker container from having to download the model files each time it starts up.
-- I can't push the model files to GitHub because they are too large so you will need to download them locally before building the Docker container.
+- The model files are too large to store on github and are downloaded at the start up of the Docker container.
+- Additionally, the model files are too large to store more than one model at a time in a Docker container. Refer to `download.py` for logic on how the model files are checked and downloaded on server start up.
+- When developing locally, you can download the model files using the `utils/dl_model_files.py` script or just have the start up lifecycle do it for you (This will remove any existing files in model_files).
 
 ## Running the Server Locally
 - You can run the server locally using the `server/main.py` script.
@@ -47,10 +53,8 @@ docker build -t remote-client-server .
 docker run -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus all --name remote-client-server remote-client-server
 ```
 
-When the Docker container starts, it will automatically check the environment variable (see Docker run command `MODEL=pixart`) to see which model to load. The start up lifecycle will then check that the model_files directory contains the correct model files. If not, it will wipe the directory and download the correct model files. This happens in model_utils/download.py
+When the Docker container starts, it will automatically check the environment variable (see Docker run command `MODEL=pixart`) to see which model to load. The start up lifecycle will then check that the model_files directory contains the correct model files. If not, it will wipe the directory and download the correct files. This happens in model_utils/download.py
 
-## PyTorch/CUDA
-- You can test your local PyTorch/CUDA installation by using the `utils/torch_test.ipynb` notebook.
 
 ## Access API Documentation
 - `http://127.0.0.1:8888/docs` for Swagger UI documentation.
@@ -67,10 +71,9 @@ When the Docker container starts, it will automatically check the environment va
 
 ## Adding New Models
 - Add a new file and class to the `app/gaas` directory to support the new model.
-- In model_utils/model_config.py, add the model config to the SUPPORTED_MODELS object.
-- The expected_model_class can be found in the model_index.json of the downloaded model files.
-- Update the `model_switch()` method in the QueueManager class to support the new model.
-- You do NOT need to add an additional endpoint.
+- In `model_utils/model_config.py`, add the model config to the `SUPPORTED_MODELS` object.
+- The expected_model_class can be found in the `model_index.json` of the downloaded model files.
+- If you are adding a new `TYPE` of model, update the `model_switch()` method in the QueueManager class to support the new model.
 - You can enforce type checking with pydantic by adding a new class to the `server/pydantic_models` directory.
 
 
