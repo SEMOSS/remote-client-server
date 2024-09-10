@@ -1,11 +1,11 @@
-import os
 import asyncio
-from fastapi import WebSocket
-from typing import Dict, Any
-from gaas.image_gen import ImageGen
 import logging
 import concurrent.futures
+from typing import Dict, Any
 from starlette.websockets import WebSocketDisconnect, WebSocketState
+from fastapi import WebSocket
+from gaas.image_gen import ImageGen
+from model_utils.model_config import get_model_type
 
 logger = logging.getLogger(__name__)
 
@@ -130,9 +130,9 @@ class QueueManager:
                 del self.websocket_map[job_id]
 
     def model_switch(self, request):
-        MODEL = os.getenv("MODEL", "image")
+        model = get_model_type()
 
-        if MODEL.lower() == "image":
+        if model == "image":
             image_gen = ImageGen()
             return image_gen.generate_image(**request)
 

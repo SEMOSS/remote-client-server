@@ -44,8 +44,10 @@ docker build -t remote-client-server .
 ```
 
 ```bash
-docker run -p 8888:8888 -e TYPE=image -e HOST=0.0.0.0 -e PORT=8888 --gpus all --name remote-client-server remote-client-server
+docker run -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus all --name remote-client-server remote-client-server
 ```
+
+When the Docker container starts, it will automatically check the environment variable (see Docker run command `MODEL=pixart`) to see which model to load. The start up lifecycle will then check that the model_files directory contains the correct model files. If not, it will wipe the directory and download the correct model files. This happens in model_utils/download.py
 
 ## PyTorch/CUDA
 - You can test your local PyTorch/CUDA installation by using the `utils/torch_test.ipynb` notebook.
@@ -57,18 +59,19 @@ docker run -p 8888:8888 -e TYPE=image -e HOST=0.0.0.0 -e PORT=8888 --gpus all --
 ## Access API Endpoints
 - `ws://localhost:8888/api/generate` - Gen-AI WebSocket endpoint.
 
-- `http://localhost:8888/api/gpu` - GPU status endpoint (Returns whether the PyTorch can access GPU on the container).
 
 - `http://localhost:8888/api/health` - Health check endpoint.
 
-- `http://localhost:8888/api/queue_size` - Queue size endpoint (Returns size of the queue).
+- `http://localhost:8888/api/status` - Returns an object with values for the current model, queue size, GPU utilization and server status.
 
 
 ## Adding New Models
 - Add a new file and class to the `app/gaas` directory to support the new model.
+- In model_utils/model_config.py, add the model config to the SUPPORTED_MODELS object.
+- The expected_model_class can be found in the model_index.json of the downloaded model files.
 - Update the `model_switch()` method in the QueueManager class to support the new model.
 - You do NOT need to add an additional endpoint.
-- You can enforce type checking with pydantic by adding a new class to the `server/models` directory.
+- You can enforce type checking with pydantic by adding a new class to the `server/pydantic_models` directory.
 
 
 ## Formatting

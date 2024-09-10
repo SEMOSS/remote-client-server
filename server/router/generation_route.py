@@ -5,7 +5,7 @@ import asyncio
 from fastapi import WebSocket, WebSocketDisconnect, APIRouter
 from sockets.connection_manager import ConnectionManager
 from sockets.queue_manager import queue_manager
-from models.models import ImageRequest
+from pydantic_models.models import ImageRequest
 
 
 logger = logging.getLogger(__name__)
