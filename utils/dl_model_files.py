@@ -8,7 +8,7 @@ def download_model_files():
     """
     model_repo_id = "PixArt-alpha/PixArt-XL-2-1024-MS"
 
-    local_model_dir = "./model_files"
+    local_model_dir = "./model_files/pixart"
 
     snapshot_download(repo_id=model_repo_id, local_dir=local_model_dir)
 

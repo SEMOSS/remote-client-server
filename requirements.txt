@@ -1,5 +1,6 @@
 accelerate
 pydantic
+pytest
 pillow
 fastapi
 ftfy

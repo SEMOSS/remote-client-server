@@ -66,7 +66,7 @@ def check_and_download_model_files():
     """
     set_server_status(ServerStatus.DOWNLOADING_MODEL)
 
-    LOCAL_MODEL_DIR = "./model_files"
+    LOCAL_MODEL_DIR = "/app/model_files/pixart"
     model_config = get_model_config()
     if not model_config:
         logger.error("Model configuration not found.")
