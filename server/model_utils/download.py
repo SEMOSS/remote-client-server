@@ -2,6 +2,8 @@ import os
 import json
 import logging
 import shutil
+import subprocess
+import time
 from typing import Optional
 from huggingface_hub import snapshot_download
 from model_utils.model_config import get_model_config
@@ -80,7 +82,8 @@ def check_and_download_model_files():
     # Check if directory exists and is not empty
     if not os.path.exists(LOCAL_MODEL_DIR) or not os.listdir(LOCAL_MODEL_DIR):
         logger.info("Model directory not found or empty. Downloading model files...")
-        download_model_files(model_repo_id, LOCAL_MODEL_DIR)
+        # download_model_files(model_repo_id, LOCAL_MODEL_DIR)
+        download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
         return
 
     # Check if model_index.json exists
@@ -89,7 +92,8 @@ def check_and_download_model_files():
             "model_index.json not found. Clearing directory and downloading model files..."
         )
         clear_directory(LOCAL_MODEL_DIR)
-        download_model_files(model_repo_id, LOCAL_MODEL_DIR)
+        # download_model_files(model_repo_id, LOCAL_MODEL_DIR)
+        download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
         return
 
     # Parse model_index.json and check _class_name
@@ -103,7 +107,8 @@ def check_and_download_model_files():
                 f"Existing model is listed as {currently_downloaded_model}, not {expected_model_class}. Clearing directory and downloading correct model files..."
             )
             clear_directory(LOCAL_MODEL_DIR)
-            download_model_files(model_repo_id, LOCAL_MODEL_DIR)
+            # download_model_files(model_repo_id, LOCAL_MODEL_DIR)
+            download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
         else:
             logger.info(f"Correct model files for {expected_model_class} found.")
             set_server_status(ServerStatus.READY)
@@ -112,7 +117,8 @@ def check_and_download_model_files():
             "Error parsing model_index.json. Clearing directory and downloading model files..."
         )
         clear_directory(LOCAL_MODEL_DIR)
-        download_model_files(model_repo_id, LOCAL_MODEL_DIR)
+        # download_model_files(model_repo_id, LOCAL_MODEL_DIR)
+        download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
 
 
 def clear_directory(directory):
@@ -137,3 +143,63 @@ def download_model_files(model_repo_id, LOCAL_MODEL_DIR):
     snapshot_download(repo_id=model_repo_id, local_dir=LOCAL_MODEL_DIR)
     set_server_status(ServerStatus.READY)
     logger.info("Model files downloaded successfully.")
+
+
+def log_output(process, logger):
+    for line in iter(process.stdout.readline, ""):
+        logger.info(line.strip())
+
+
+def download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR):
+    """
+    Download the model files using the Hugging Face CLI with real-time logging and progress updates.
+    """
+    set_server_status(ServerStatus.DOWNLOADING_MODEL)
+
+    os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
+
+    command = f"huggingface-cli download {model_repo_id} --local-dir {LOCAL_MODEL_DIR} --local-dir-use-symlinks False"
+
+    try:
+        process = subprocess.Popen(
+            command,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
+        )
+
+        last_log_time = time.time()
+        while True:
+            output = process.stdout.readline()
+            if output == "" and process.poll() is not None:
+                break
+            if output:
+                current_time = time.time()
+                if current_time - last_log_time >= 5:
+                    logger.info(output.strip())
+                    last_log_time = current_time
+
+        remaining_output, error_output = process.communicate()
+        if remaining_output:
+            logger.info(remaining_output.strip())
+        if error_output:
+            logger.error(error_output.strip())
+
+        if process.returncode == 0:
+            set_server_status(ServerStatus.READY)
+            logger.info("Model files downloaded successfully.")
+        else:
+            raise subprocess.CalledProcessError(
+                process.returncode, command, error_output
+            )
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error downloading model files: {e}")
+        logger.error(f"Error output: {e.output}")
+        set_server_status(ServerStatus.ERROR)
+    except Exception as e:
+        logger.error(f"Unexpected error during model download: {str(e)}")
+        set_server_status(ServerStatus.ERROR)

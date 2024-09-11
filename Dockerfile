@@ -20,12 +20,17 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN mkdir -p /app/model_files/pixart && chmod 777 /app/model_files/pixart
+
+
 ENV PYTHONPATH="/app/server" 
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 ENV HOST=0.0.0.0
 ENV PORT=8888
 ENV MODEL=pixart
+
+
 
 EXPOSE ${PORT}
 

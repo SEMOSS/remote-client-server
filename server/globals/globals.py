@@ -5,6 +5,7 @@ class ServerStatus(Enum):
     INITIALIZING = "initializing"
     DOWNLOADING_MODEL = "downloading_model"
     MISSING_MODEL_FILES = "missing model files"
+    ERROR = "error"
     READY = "ready"
 
 
