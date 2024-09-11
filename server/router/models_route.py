@@ -11,5 +11,5 @@ models_route = APIRouter()
 async def verify_models(
     model: str = Path(..., description="The name of the model to verify")
 ):
-    model_files = verify_model_files(f"/app/model_files/{model}")
+    model_files = verify_model_files(model)
     return {"message": model_files}

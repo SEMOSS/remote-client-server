@@ -17,9 +17,12 @@ def get_current_model() -> str:
     """
     Get the model that was used to start the server.
     Returns:
-        str: Model name
+        str: Model name (short name)
     """
-    model = os.getenv("MODEL", "pixart")
+    model = os.getenv("MODEL", "")
+    if model == "":
+        logger.error("No model specified.")
+        return "Model is not configured."
     return model.lower()
 
 

@@ -12,7 +12,7 @@ from router.health_check_route import health_check_router
 from router.generation_route import generation_router
 from router.status_route import status_route
 from router.models_route import models_route
-from globals.globals import ServerStatus, set_server_status
+from model_utils.download import verify_model_files
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # These are start up events... We can add shutdown events below the yield
+    await asyncio.to_thread(verify_model_files, "pixart", True)
     asyncio.create_task(queue_manager.process_jobs())
-    set_server_status(ServerStatus.READY)
     yield
 
 

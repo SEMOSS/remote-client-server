@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import shutil
+from typing import Optional
 from huggingface_hub import snapshot_download
 from model_utils.model_config import get_model_config
 from globals.globals import ServerStatus, set_server_status
@@ -9,7 +10,7 @@ from globals.globals import ServerStatus, set_server_status
 logger = logging.getLogger(__name__)
 
 
-def verify_model_files(path: str):
+def verify_model_files(short_name: str, update_status: Optional[bool] = False) -> str:
     """
     Takes an expected path and checks the model files directory to see if the correct model files are present.
     Args:
@@ -19,14 +20,19 @@ def verify_model_files(path: str):
     """
     model_config = get_model_config()
     expected_model_class = model_config.get("expected_model_class")
+    path = f"/app/model_files/{short_name}"
     model_index_path = os.path.join(path, "model_index.json")
     if not os.path.exists(path) or not os.listdir(path):
         message = "Model directory not found or empty."
         logger.info(message)
+        if update_status:
+            set_server_status(ServerStatus.MISSING_MODEL_FILES)
         return message
     if not os.path.exists(model_index_path):
         message = "model_index.json not found."
         logger.info(message)
+        if update_status:
+            set_server_status(ServerStatus.MISSING_MODEL_FILES)
         return message
     try:
         with open(model_index_path, "r") as f:
@@ -36,10 +42,14 @@ def verify_model_files(path: str):
         if currently_downloaded_model != expected_model_class:
             message = f"Existing model is listed as {currently_downloaded_model}, not {expected_model_class}."
             logger.info(message)
+            if update_status:
+                set_server_status(ServerStatus.MISSING_MODEL_FILES)
             return message
         else:
             message = f"Correct model files for {expected_model_class} found."
             logger.info(message)
+            if update_status:
+                set_server_status(ServerStatus.READY)
             return message
     except json.JSONDecodeError:
         message = "Error parsing model_index.json."

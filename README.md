@@ -10,18 +10,18 @@ This is currently setup to only run a single type of model at a time. Please see
 The following models are currently supported. Use the `MODEL` environment variable to specify which model to load by including the value of the key value pair of the supported models below.
 
 - Image Generation 
-    - MODEL: PixArt-alpha/PixArt-XL-2-1024-MS, SHORTNAME : `pixart`
+    - MODEL: `PixArt-alpha/PixArt-XL-2-1024-MS` -- SHORTNAME : `pixart`
 
 ## Local Installation (Assumes Windows w/ Anaconda)
 Running PyTorch with CUDA on Windows can be a bit tricky and the steps may vary based on your system configuration. The following steps should help you get started.
 
-- conda activate base
-- conda create --name your_environment_name python=3.11
-- conda activate your_environment_name
-- conda install cuda --channel nvidia/label/cuda-12.4.0
-- pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
-- conda env update -f environment.yml
-- pip install -r requirements.txt
+- `conda activate base`
+- `conda create --name your_environment_name python=3.11`
+- `conda activate your_environment_name`
+- `conda install cuda --channel nvidia/label/cuda-12.4.0`
+- `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124`
+- `conda env update -f environment.yml`
+- `pip install -r requirements.txt`
 
 ## PyTorch/CUDA
 - You can test your local PyTorch/CUDA installation by using the `utils/torch_test.ipynb` notebook.
