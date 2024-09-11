@@ -9,6 +9,46 @@ from globals.globals import ServerStatus, set_server_status
 logger = logging.getLogger(__name__)
 
 
+def verify_model_files(path: str):
+    """
+    Takes an expected path and checks the model files directory to see if the correct model files are present.
+    Args:
+        path (str): Path to the specific model files directory. IE: /app/model_files/pixart
+    Returns:
+        str: Message indicating if the model files are correct or not.
+    """
+    model_config = get_model_config()
+    expected_model_class = model_config.get("expected_model_class")
+    model_index_path = os.path.join(path, "model_index.json")
+    if not os.path.exists(path) or not os.listdir(path):
+        message = "Model directory not found or empty."
+        logger.info(message)
+        return message
+    if not os.path.exists(model_index_path):
+        message = "model_index.json not found."
+        logger.info(message)
+        return message
+    try:
+        with open(model_index_path, "r") as f:
+            model_info = json.load(f)
+
+        currently_downloaded_model = model_info.get("_class_name")
+        if currently_downloaded_model != expected_model_class:
+            message = f"Existing model is listed as {currently_downloaded_model}, not {expected_model_class}."
+            logger.info(message)
+            return message
+        else:
+            message = f"Correct model files for {expected_model_class} found."
+            logger.info(message)
+            return message
+    except json.JSONDecodeError:
+        message = "Error parsing model_index.json."
+        logger.error(message)
+        return message
+
+
+# This function is not currently in use but can be used to download model files dynamically.
+# The main problem is how slow this operation is when run inside the container
 def check_and_download_model_files():
     """
     Check if the model files exist and are for the correct model type.

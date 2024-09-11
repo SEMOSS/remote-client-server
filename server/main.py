@@ -7,11 +7,12 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from model_utils.download import check_and_download_model_files
 from sockets.queue_manager import queue_manager
 from router.health_check_route import health_check_router
 from router.generation_route import generation_router
 from router.status_route import status_route
+from router.models_route import models_route
+from globals.globals import ServerStatus, set_server_status
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,9 +21,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # These are start up events... We can add shutdown events below the yield
-    await asyncio.to_thread(check_and_download_model_files)
-    # The queue manager is BLOCKED until the model files are checked/downloaded above. Only then does the event loop start.
     asyncio.create_task(queue_manager.process_jobs())
+    set_server_status(ServerStatus.READY)
     yield
 
 
@@ -49,6 +49,7 @@ async def validation_exception_handler(request, exc):
 app.include_router(health_check_router, prefix="/api")
 app.include_router(generation_router, prefix="/api")
 app.include_router(status_route, prefix="/api")
+app.include_router(models_route, prefix="/api")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

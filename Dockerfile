@@ -25,13 +25,8 @@ ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 ENV HOST=0.0.0.0
 ENV PORT=8888
-# TODO: REPLACE RELATED LOGIC WITH MODEL
-ENV TYPE=image
 ENV MODEL=pixart
 
 EXPOSE ${PORT}
-
-RUN adduser --system --no-create-home appuser
-USER appuser
 
 CMD ["sh", "-c", "python3 server/main.py --host $HOST --port $PORT"]

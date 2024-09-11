@@ -7,6 +7,7 @@ SUPPORTED_MODELS = {
     "pixart": {
         "model_repo_id": "PixArt-alpha/PixArt-XL-2-1024-MS",
         "expected_model_class": "PixArtAlphaPipeline",
+        "short_name": "pixart",
         "type": "image",
     }
 }

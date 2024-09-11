@@ -10,7 +10,7 @@ This is currently setup to only run a single type of model at a time. Please see
 The following models are currently supported. Use the `MODEL` environment variable to specify which model to load by including the value of the key value pair of the supported models below.
 
 - Image Generation 
-    - PixArt-alpha/PixArt-XL-2-1024-MS : `pixart`
+    - MODEL: PixArt-alpha/PixArt-XL-2-1024-MS, SHORTNAME : `pixart`
 
 ## Local Installation (Assumes Windows w/ Anaconda)
 Running PyTorch with CUDA on Windows can be a bit tricky and the steps may vary based on your system configuration. The following steps should help you get started.
@@ -48,13 +48,20 @@ python main.py --host "127.0.0.1" --port 5000
 ```bash
 docker build -t remote-client-server .
 ```
-
+If you run the container without a volume attached, make sure the model files are downloaded in the `model_files` directory.
 ```bash
 docker run -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus all --name remote-client-server remote-client-server
 ```
 
-When the Docker container starts, it will automatically check the environment variable (see Docker run command `MODEL=pixart`) to see which model to load. The start up lifecycle will then check that the model_files directory contains the correct model files. If not, it will wipe the directory and download the correct files. This happens in model_utils/download.py
+Run the container with a volume attached with the model files. 
+```bash
+docker run --rm -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus all --name remote-client-server -v pixart-volume:/app/model_files remote-client-server
+```
 
+## Docker Volumes
+- You can use Docker volumes to store the model files.
+- The volume should contain root directories for each model which should be named by the model short name.
+- The volume is attached to the container at `/app/model_files`.
 
 ## Access API Documentation
 - `http://127.0.0.1:8888/docs` for Swagger UI documentation.
@@ -63,10 +70,11 @@ When the Docker container starts, it will automatically check the environment va
 ## Access API Endpoints
 - `ws://localhost:8888/api/generate` - Gen-AI WebSocket endpoint.
 
-
 - `http://localhost:8888/api/health` - Health check endpoint.
 
 - `http://localhost:8888/api/status` - Returns an object with values for the current model, queue size, GPU utilization and server status.
+
+- `http://localhost:8888/api/models/{model}` - Takes a model short name as a parameter and returns whether the correct model files are present in the model_files directory.
 
 
 ## Adding New Models
@@ -85,5 +93,4 @@ When the Docker container starts, it will automatically check the environment va
 - [ ] Update ImageGen class to use generic pipeline and abstract class for different image generation models.
 - [ ] Update the generation route for dynamically type checking the request for different models.
 - [ ] Add semaphore and Docker env for setting the number of conncurrent operations utilzing GPU (currently set to 1).
-- [ ] Look into multi-stage Docker builds for reducing image size.
 
