@@ -54,7 +54,7 @@ class QueueManager:
                     loop = asyncio.get_running_loop()
                     response, chunks = await asyncio.wait_for(
                         loop.run_in_executor(self.executor, self.model_switch, request),
-                        timeout=90,
+                        timeout=120,
                     )
 
                     await websocket.send_json(response)

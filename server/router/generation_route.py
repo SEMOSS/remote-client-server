@@ -6,6 +6,7 @@ from fastapi import WebSocket, WebSocketDisconnect, APIRouter
 from sockets.connection_manager import ConnectionManager
 from sockets.queue_manager import queue_manager
 from pydantic_models.models import ImageRequest
+from model_utils.model_config import verify_payload
 
 
 logger = logging.getLogger(__name__)
@@ -24,8 +25,8 @@ async def websocket_endpoint(websocket: WebSocket):
             logger.info(f"Received data: {data}")
             try:
                 request_dict = json.loads(data)
-                # TODO: Need a way to dynamically validate the request when the model changes
-                request = ImageRequest(**request_dict)
+                # Verifying the payload by pulling the model name from the request and pulling the correct pydantic model
+                request = verify_payload(request_dict)
 
                 job_id = str(uuid.uuid4())
                 await queue_manager.add_job(job_id, websocket, request.dict())

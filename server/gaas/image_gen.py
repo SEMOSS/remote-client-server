@@ -52,6 +52,7 @@ class ImageGen:
         file_name: Optional[
             str
         ] = "generated_image.png",  # JUST FOR TESTING -- useful to verify images from different clients
+        **kwargs,
     ) -> dict:
 
         logger.info("Generating image...")

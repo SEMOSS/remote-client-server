@@ -4,6 +4,7 @@ from typing import Optional
 
 class ImageRequest(BaseModel):
     prompt: str
+    model: str
     consistency_decoder: bool = False
     negative_prompt: Optional[str] = None
     guidance_scale: float = 7.5
