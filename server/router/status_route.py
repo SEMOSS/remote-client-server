@@ -1,8 +1,7 @@
 import logging
 import torch
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from globals.globals import get_server_status
-from sockets.queue_manager import queue_manager
 from model_utils.model_config import get_model_config
 
 
@@ -21,25 +20,14 @@ def is_gpu_available() -> bool:
     return torch.cuda.is_available()
 
 
-def get_queue_size() -> int:
+def get_queue_size(request: Request) -> int:
     """
-    Get the size of the queue. Returns 0 if the queue manager hasn't been initialized.
+    Get the size of the queue.
     Returns:
         int: Size of the queue
     """
-    # if the QueueManager hasn't been initialized (i.e. downloading model files)
-    if not queue_manager or not queue_manager.get_queue_size():
-        return 0
+    queue_manager = request.app.state.queue_manager
     return queue_manager.get_queue_size()
-
-
-def get_status() -> str:
-    """
-    Get the status of the server. initializing, DOWNdownloading_model, or ready.
-    Returns:
-        str: Server status
-    """
-    return get_server_status().value
 
 
 def get_model() -> dict:
@@ -59,14 +47,15 @@ def get_model() -> dict:
 
 
 @status_route.get("/status")
-async def status():
+async def status(request: Request):
+
     model_config = get_model()
     model = model_config.get("model_repo_id")
     type = model_config.get("type")
     return {
-        "status": get_status(),
+        "status": get_server_status(),
         "gpu": is_gpu_available(),
-        "queue": get_queue_size(),
+        "queue": get_queue_size(request),
         "model": model,
         "type": type,
     }

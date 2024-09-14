@@ -4,10 +4,7 @@ import uuid
 import asyncio
 from fastapi import WebSocket, WebSocketDisconnect, APIRouter
 from sockets.connection_manager import ConnectionManager
-from sockets.queue_manager import queue_manager
-from pydantic_models.models import ImageRequest
 from model_utils.model_config import verify_payload
-
 
 logger = logging.getLogger(__name__)
 manager = ConnectionManager()
@@ -19,6 +16,9 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     job_id = None
     try:
+        app = websocket.app
+        queue_manager = app.state.queue_manager
+
         await websocket.send_json({"status": "connected"})
         while True:
             data = await websocket.receive_text()

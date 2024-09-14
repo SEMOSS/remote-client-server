@@ -1,21 +1,11 @@
-from enum import Enum
-
-
-class ServerStatus(Enum):
-    INITIALIZING = "initializing"
-    DOWNLOADING_MODEL = "downloading_model"
-    MISSING_MODEL_FILES = "missing model files"
-    ERROR = "error"
-    READY = "ready"
-
-
-_current_status = ServerStatus.INITIALIZING
+from globals.app_instance import get_app
 
 
 def get_server_status():
-    return _current_status
+    app = get_app()
+    return app.state.server_status
 
 
-def set_server_status(status: ServerStatus):
-    global _current_status
-    _current_status = status
+def set_server_status(status: str):
+    app = get_app()
+    app.state.server_status = status

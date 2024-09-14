@@ -6,6 +6,7 @@ from diffusers import PixArtAlphaPipeline
 from io import BytesIO
 import base64
 import logging
+from globals.globals import set_server_status
 
 logger = logging.getLogger(__name__)
 
@@ -29,17 +30,29 @@ class ImageGen:
 
         self.model_name = model_name
 
-        # TODO: Change this to generic pipeline
-        self.pipe = PixArtAlphaPipeline.from_pretrained(
-            # If you want to download the model files dynamically, use `self.model_name` instead of the model directory below
-            model_files_path,
-            torch_dtype=torch.float16 if self.device.type == "cuda" else torch.float32,
-            use_safetensors=True,
-        )
-        self.pipe.to(self.device)
-        self.pipe.enable_model_cpu_offload()
+        try:
+            logger.info("Loading the model from path: %s", model_files_path)
+            set_server_status("Initializing ImageGen...")
+            # TODO: Change this to generic pipeline
+            self.pipe = PixArtAlphaPipeline.from_pretrained(
+                # If you want to download the model files dynamically, use `self.model_name` instead of the model directory below
+                model_files_path,
+                torch_dtype=(
+                    torch.float16 if self.device.type == "cuda" else torch.float32
+                ),
+                use_safetensors=True,
+            )
+            self.pipe.to(self.device)
+            self.pipe.enable_model_cpu_offload()
+            logger.info("Model loaded successfully.")
+            set_server_status("READY: ImageGen initialized.")
 
-    def generate_image(
+        except Exception as e:
+            logger.exception("Failed to initialize ImageGen: %s", e)
+            set_server_status("ImageGen FAILED to initialize.")
+            raise
+
+    def generate(
         self,
         prompt: str,
         consistency_decoder: Optional[bool] = False,

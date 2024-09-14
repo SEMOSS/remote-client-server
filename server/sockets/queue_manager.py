@@ -4,14 +4,13 @@ import concurrent.futures
 from typing import Dict, Any
 from starlette.websockets import WebSocketDisconnect, WebSocketState
 from fastapi import WebSocket
-from gaas.image_gen import ImageGen
-from model_utils.model_config import get_model_type
 
 logger = logging.getLogger(__name__)
 
 
 class QueueManager:
-    def __init__(self):
+    def __init__(self, gaas):
+        self.gaas = gaas
         self.queue = asyncio.Queue()
         self.current_job = None
         self.websocket_map: Dict[str, WebSocket] = {}
@@ -54,7 +53,7 @@ class QueueManager:
                     loop = asyncio.get_running_loop()
                     response, chunks = await asyncio.wait_for(
                         loop.run_in_executor(self.executor, self.model_switch, request),
-                        timeout=120,
+                        timeout=300,
                     )
 
                     await websocket.send_json(response)
@@ -130,11 +129,4 @@ class QueueManager:
                 del self.websocket_map[job_id]
 
     def model_switch(self, request):
-        model = get_model_type()
-
-        if model == "image":
-            image_gen = ImageGen()
-            return image_gen.generate_image(**request)
-
-
-queue_manager = QueueManager()
+        return self.gaas.generate(**request)
