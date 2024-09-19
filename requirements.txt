@@ -11,7 +11,6 @@ requests
 SentencePiece
 transformers
 uvicorn
-websockets
 huggingface_hub[cli]
 
 paddleocr

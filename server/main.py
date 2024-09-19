@@ -1,17 +1,18 @@
 import logging
 import asyncio
 import argparse
+import os
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from sockets.queue_manager import QueueManager
+from queue_manager.queue_manager import QueueManager
 from router.health_check_route import health_check_router
+from router.generation_route import generation_router
 from globals import app_instance
 
-from router.generation_route import generation_router
 
 from router.status_route import status_route
 from router.models_route import models_route
@@ -68,6 +69,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="0.0.0.0", type=str, help="Host IP address")
     parser.add_argument("--port", default=8888, type=int, help="Port number")
+    parser.add_argument("--model", default="pixart", type=str, help="Model name")
+
+    if parser.parse_args().model:
+        os.environ["MODEL"] = parser.parse_args().model
+
     args = parser.parse_args()
 
     import uvicorn

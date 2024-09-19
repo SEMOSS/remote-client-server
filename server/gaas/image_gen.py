@@ -131,15 +131,7 @@ class ImageGen:
         if base64_str is None or base64_str == "":
             base64_str = "There was a problem converting the image to base64."
 
-        chunk_size = 64 * 1024  # 64KB chunks
-        chunks = [
-            base64_str[i : i + chunk_size]
-            for i in range(0, len(base64_str), chunk_size)
-        ]
-
         response = {
-            "total_chunks": len(chunks),
-            "chunk_size": chunk_size,
             "generation_time": int(generation_time),
             "seed": str(seed),
             "prompt": prompt,
@@ -152,6 +144,7 @@ class ImageGen:
             "vae_model_name": (
                 "openai/consistency-decoder" if consistency_decoder else "default"
             ),
+            "image": base64_str,
         }
 
-        return response, chunks
+        return response

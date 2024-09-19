@@ -1,8 +1,8 @@
 # Remote Client Server
 
-This is a FastAPI application that supports TCP and HTTP clients. The server can be run locally or in a Docker container. This server is used to serve different gen-AI models that require a GPU for inference. 
+This is a FastAPI application that supports HTTP clients. The server can be run locally or in a Docker container. This server is used to serve different gen-AI models that require a GPU for inference. 
 
-This server uses a queue to manage GPU consumption. The queue accepts the websocket connection and processes the request in the order it was received. The server can be scaled horizontally by running multiple instances of the server.
+This server uses a queue to manage GPU consumption. The queue accepts the connection and processes the request in the order it was received. The server can be scaled horizontally by running multiple instances of the server.
 
 This is currently setup to only run a single type of model at a time. Please see the Adding New Models section for more information on how to add new models.
 
@@ -34,7 +34,7 @@ Running PyTorch with CUDA on Windows can be a bit tricky and the steps may vary 
 ## Running the Server Locally
 - You can run the server locally using the `server/main.py` script.
 ```bash
-python server/main.py
+python server/main.py MODEL=pixart
 ```
 - You can specify the host and port using the `--host` and `--port` flags.
 ```bash
@@ -68,7 +68,7 @@ docker run --rm -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus
 - `http://127.0.0.1:8888/redoc` for ReDoc documentation.
 
 ## Access API Endpoints
-- `ws://localhost:8888/api/generate` - Gen-AI WebSocket endpoint.
+- `http://localhost:8888/api/generate` - Gen-AI generation endpoint.
 
 - `http://localhost:8888/api/health` - Health check endpoint.
 

@@ -1,54 +1,46 @@
-import json
-import logging
-import uuid
+from fastapi import APIRouter, Request
+from fastapi.responses import StreamingResponse
 import asyncio
-from fastapi import WebSocket, WebSocketDisconnect, APIRouter
-from sockets.connection_manager import ConnectionManager
+import json
+import uuid
 from model_utils.model_config import verify_payload
+import logging
 
 logger = logging.getLogger(__name__)
-manager = ConnectionManager()
+
 generation_router = APIRouter()
 
 
-@generation_router.websocket("/generate")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
-    job_id = None
-    try:
-        app = websocket.app
-        queue_manager = app.state.queue_manager
+@generation_router.post("/generate")
+async def http_generate(request: Request):
+    logger.info(f"Received HTTP request: {request}")
 
-        await websocket.send_json({"status": "connected"})
+    app = request.app
+    queue_manager = app.state.queue_manager
+
+    request_dict = await request.json()
+    request_model = verify_payload(request_dict)
+
+    job_id = str(uuid.uuid4())
+
+    async def event_stream():
+        await queue_manager.add_job(job_id, request_model.dict())
+
         while True:
-            data = await websocket.receive_text()
-            logger.info(f"Received data: {data}")
-            try:
-                request_dict = json.loads(data)
-                # Verifying the payload by pulling the model name from the request and pulling the correct pydantic model
-                request = verify_payload(request_dict)
+            status = await queue_manager.get_job_status(job_id)
+            if status == "queued":
+                queue_position = await queue_manager.get_job_position(job_id)
+                yield f"data: {json.dumps({'status': 'waiting', 'message': f'Your position in the queue is: {queue_position + 1}'})}\n\n"
+            elif status == "processing":
+                yield f"data: {json.dumps({'status': 'processing', 'message': 'Generating image...'})}\n\n"
+            elif status == "complete":
+                result = await queue_manager.get_job_result(job_id)
+                yield f"data: {json.dumps(result)}\n\n"
+                break
+            elif status in ["error", "cancelled", "timeout"]:
+                yield f"data: {json.dumps({'status': status, 'message': f'Job {status}'})}\n\n"
+                break
 
-                job_id = str(uuid.uuid4())
-                await queue_manager.add_job(job_id, websocket, request.dict())
+            await asyncio.sleep(1)  # Polling every second
 
-                while True:
-                    status = await queue_manager.get_job_status(job_id)
-                    if status == "complete":
-                        break
-                    elif status == "error":
-                        await websocket.send_json({"error": "Job processing failed"})
-                        break
-                    await asyncio.sleep(1)  # Poll every second
-
-            except json.JSONDecodeError:
-                await websocket.send_json({"error": "Invalid JSON format"})
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        logger.info(f"Client disconnected")
-        if job_id:
-            await queue_manager.cancel_job(job_id)
-    except Exception as e:
-        await manager.disconnect(websocket)
-        logger.error(f"Error in WebSocket connection: {e}")
-        if job_id:
-            await queue_manager.cancel_job(job_id)
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
