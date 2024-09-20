@@ -35,6 +35,9 @@ async def http_generate(request: Request):
                 yield f"data: {json.dumps({'status': 'processing', 'message': 'Generating image...'})}\n\n"
             elif status == "complete":
                 result = await queue_manager.get_job_result(job_id)
+                result["status"] = "complete"
+                result["message"] = "Image generation complete."
+                logger.info(f"Job {job_id} completed.")
                 yield f"data: {json.dumps(result)}\n\n"
                 break
             elif status in ["error", "cancelled", "timeout"]:
