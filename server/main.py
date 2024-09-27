@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from queue_manager.queue_manager import QueueManager
 from router.health_check_route import health_check_router
 from router.generation_route import generation_router
+from router.queue_route import queue_router
 from globals import app_instance
 
 
@@ -64,6 +65,7 @@ app.include_router(health_check_router, prefix="/api")
 app.include_router(generation_router, prefix="/api")
 app.include_router(status_route, prefix="/api")
 app.include_router(models_route, prefix="/api")
+app.include_router(queue_router, prefix="/api")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
