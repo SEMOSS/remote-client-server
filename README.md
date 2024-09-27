@@ -78,6 +78,8 @@ docker run --rm -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus
 
 - `http://localhost:8888/api/queue` - Returns the current queue size as a plain text response. (IE: "queue_size 0")
 
+- `http://localhost:8888/metrics` - Returns the current queue size as a plain text response. (IE: "queue_size 0")
+
 
 ## Adding New Models
 - Add a new file and class to the `app/gaas` directory to support the new model.
