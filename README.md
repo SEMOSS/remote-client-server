@@ -76,6 +76,8 @@ docker run --rm -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus
 
 - `http://localhost:8888/api/models/{model}` - Takes a model short name as a parameter and returns whether the correct model files are present in the model_files directory.
 
+- `http://localhost:8888/api/queue` - Returns the current queue size as a plain text response. (IE: "queue_size 0")
+
 
 ## Adding New Models
 - Add a new file and class to the `app/gaas` directory to support the new model.
