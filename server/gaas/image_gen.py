@@ -43,6 +43,14 @@ class ImageGen:
                 use_safetensors=True,
             )
             self.pipe.to(self.device)
+
+            # Experiemental Model Efficiency: Enable xFormers
+            self.pipe.enable_xformers_memory_efficient_attention()
+
+            # Experiemental Model Efficiency: Compile the UNet model if using PyTorch 2.0+
+            if torch.__version__ >= "2":
+                self.pipe.unet = torch.compile(self.pipe.unet)
+
             self.pipe.enable_model_cpu_offload()
             logger.info("Model loaded successfully.")
             set_server_status("READY: ImageGen initialized.")
