@@ -12,9 +12,9 @@ SentencePiece
 transformers
 uvicorn
 huggingface_hub[cli]
-
 paddleocr
 paddlepaddle
 paddlepaddle-gpu
 pytesseract
 timm
+

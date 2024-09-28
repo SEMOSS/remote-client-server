@@ -88,9 +88,6 @@ docker run --rm -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus
 ## Formatting
 - This project uses the [Black](https://black.readthedocs.io/en/stable/) code formatter. Please install the Black formatter in your IDE to ensure consistent code formatting before submitting a PR.
 
-## TO DO:
+## Long Path
 
-- [ ] Update ImageGen class to use generic pipeline and abstract class for different image generation models.
-- [ ] Update the generation route for dynamically type checking the request for different models.
-- [ ] Add semaphore and Docker env for setting the number of conncurrent operations utilzing GPU (currently set to 1).
-
+- If you get an error related to installing the xformers package and the error is related to the Windows long path setting, follow this [tutorial](https://medium.com/@mariem.jabloun/how-to-fix-python-package-installation-long-path-support-os-error-59ab7e9bf10a)

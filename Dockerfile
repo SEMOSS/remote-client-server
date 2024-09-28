@@ -1,8 +1,9 @@
 ARG BASE_REGISTRY=docker.io
-ARG BASE_IMAGE=nvidia/cuda
-ARG BASE_TAG=12.4.0-runtime-ubuntu22.04
+ARG BASE_IMAGE=diffusers/diffusers-pytorch-xformers-cuda
+ARG BASE_TAG=latest
 
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} as builder
+
 
 LABEL maintainer="semoss@semoss.org"
 
@@ -11,11 +12,16 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    build-essential \
+    cmake \
+    git \
     && rm -rf /var/lib/apt/lists/*
+
 
 WORKDIR /app
 
 COPY requirements.txt .
+
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY . .

@@ -48,8 +48,8 @@ class ImageGen:
             self.pipe.enable_xformers_memory_efficient_attention()
 
             # Experiemental Model Efficiency: Compile the UNet model if using PyTorch 2.0+
-            if torch.__version__ >= "2":
-                self.pipe.unet = torch.compile(self.pipe.unet)
+            # if torch.__version__ >= "2":
+            #     self.pipe.unet = torch.compile(self.pipe.unet)
 
             self.pipe.enable_model_cpu_offload()
             logger.info("Model loaded successfully.")
