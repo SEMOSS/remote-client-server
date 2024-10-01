@@ -17,4 +17,5 @@ paddleocr
 paddlepaddle
 paddlepaddle-gpu
 pytesseract
+prometheus_client
 timm
