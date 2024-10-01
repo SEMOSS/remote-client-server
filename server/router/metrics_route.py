@@ -12,4 +12,4 @@ metrics_router = APIRouter()
 async def queue(request: Request):
     queue_manager = request.app.state.queue_manager
     queue_size = queue_manager.get_queue_size()
-    return f"queue_size {queue_size}"
+    return f"modelserver_queue_size {queue_size}"
