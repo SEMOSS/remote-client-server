@@ -7,7 +7,7 @@ from prometheus_client import Gauge
 logger = logging.getLogger(__name__)
 
 # Define the Gauge metric for tracking queue size
-queue_size_gauge = Gauge('queue_size', 'Current size of the job queue')
+queue_size_gauge = Gauge('modelserver_queue_size', 'Current size of the job queue')
 
 class QueueManager:
     def __init__(self, gaas):
