@@ -12,10 +12,8 @@ from queue_manager.queue_manager import QueueManager
 from router.health_check_route import health_check_router
 from router.generation_route import generation_router
 from router.queue_route import queue_router
-from router.metrics_route import metrics_router
+from prometheus_client import make_asgi_app
 from globals import app_instance
-
-
 from router.status_route import status_route
 from router.models_route import models_route
 from model_utils.download import check_and_download_model_files
@@ -67,8 +65,10 @@ app.include_router(generation_router, prefix="/api")
 app.include_router(status_route, prefix="/api")
 app.include_router(models_route, prefix="/api")
 app.include_router(queue_router, prefix="/api")
-app.include_router(metrics_router)
 
+# Creating an ASGI app for Prometheus metrics
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -2,8 +2,12 @@ import asyncio
 import logging
 import concurrent.futures
 from typing import Dict, Any
+from prometheus_client import Gauge
 
 logger = logging.getLogger(__name__)
+
+# Define the Gauge metric for tracking queue size
+queue_size_gauge = Gauge("modelserver_queue_size", "Current size of the job queue")
 
 
 class QueueManager:
@@ -19,6 +23,7 @@ class QueueManager:
     async def add_job(self, job_id: str, request: Dict[str, Any]):
         await self.queue.put((job_id, request))
         self.job_status[job_id] = "queued"
+        queue_size_gauge.set(self.queue.qsize())
 
     async def process_jobs(self):
         while True:
@@ -59,6 +64,7 @@ class QueueManager:
             finally:
                 self.current_job = None
                 self.queue.task_done()
+                queue_size_gauge.set(self.queue.qsize())
 
     async def get_job_position(self, job_id: str) -> int:
         return next(
@@ -77,6 +83,7 @@ class QueueManager:
 
         # Removing job from queue
         self.queue._queue = [item for item in self.queue._queue if item[0] != job_id]
+        queue_size_gauge.set(self.queue.qsize())
 
     def get_queue_size(self):
         return self.queue.qsize()
@@ -91,6 +98,7 @@ class QueueManager:
                 self.job_status[job_id] = "cancelled"
             if job_id in self.job_results:
                 del self.job_results[job_id]
+        queue_size_gauge.set(self.queue.qsize())
 
     def model_switch(self, request):
         return self.gaas.generate(**request)
