@@ -12,17 +12,6 @@ The following models are currently supported. Use the `MODEL` environment variab
 - Image Generation 
     - MODEL: `PixArt-alpha/PixArt-XL-2-1024-MS` -- SHORTNAME : `pixart`
 
-## Local Installation (Assumes Windows w/ Anaconda)
-Running PyTorch with CUDA on Windows can be a bit tricky and the steps may vary based on your system configuration. The following steps should help you get started.
-
-- `conda activate base`
-- `conda create --name your_environment_name python=3.11`
-- `conda activate your_environment_name`
-- `conda install cuda --channel nvidia/label/cuda-12.4.0`
-- `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124`
-- `conda env update -f environment.yml`
-- `pip install -r requirements.txt`
-
 ## PyTorch/CUDA
 - You can test your local PyTorch/CUDA installation by using the `utils/torch_test.ipynb` notebook.
 
@@ -34,7 +23,7 @@ Running PyTorch with CUDA on Windows can be a bit tricky and the steps may vary 
 ## Running the Server Locally
 - You can run the server locally using the `server/main.py` script.
 ```bash
-python server/main.py MODEL=pixart
+python server/main.py --model pixart
 ```
 - You can specify the host and port using the `--host` and `--port` flags.
 ```bash
@@ -78,7 +67,7 @@ docker run --rm -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus
 
 - `http://localhost:8888/api/queue` - Returns the current queue size as a plain text response. (IE: "queue_size 0")
 
-- `http://localhost:8888/metrics` - Returns the current queue size as a plain text response. (IE: "queue_size 0")
+- `http://localhost:8888/metrics` - Returns Prometheus metrics.
 
 
 ## Adding New Models
@@ -95,6 +84,5 @@ docker run --rm -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus
 ## TO DO:
 
 - [ ] Update ImageGen class to use generic pipeline and abstract class for different image generation models.
-- [ ] Update the generation route for dynamically type checking the request for different models.
 - [ ] Add semaphore and Docker env for setting the number of conncurrent operations utilzing GPU (currently set to 1).
 
