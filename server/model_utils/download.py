@@ -88,11 +88,6 @@ def check_and_download_model_files():
 
     # Check if model_index.json exists
     if not os.path.exists(model_index_path):
-        logger.info(
-            "model_index.json not found. Clearing directory and downloading model files..."
-        )
-        clear_directory(LOCAL_MODEL_DIR)
-        # download_model_files(model_repo_id, LOCAL_MODEL_DIR)
         download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
         return
 
@@ -103,20 +98,12 @@ def check_and_download_model_files():
 
         currently_downloaded_model = model_info.get("_class_name")
         if currently_downloaded_model != expected_model_class:
-            logger.info(
-                f"Existing model is listed as {currently_downloaded_model}, not {expected_model_class}. Clearing directory and downloading correct model files..."
-            )
-            clear_directory(LOCAL_MODEL_DIR)
             # download_model_files(model_repo_id, LOCAL_MODEL_DIR)
             download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
         else:
             logger.info(f"Correct model files for {expected_model_class} found.")
             set_server_status("ready")
     except json.JSONDecodeError:
-        logger.error(
-            "Error parsing model_index.json. Clearing directory and downloading model files..."
-        )
-        clear_directory(LOCAL_MODEL_DIR)
         # download_model_files(model_repo_id, LOCAL_MODEL_DIR)
         download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
 
