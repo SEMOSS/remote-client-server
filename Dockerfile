@@ -34,4 +34,4 @@ ENV MODEL=pixart
 
 EXPOSE ${PORT}
 
-CMD ["sh", "-c", "python3 server/main.py --host $HOST --port $PORT"]
+CMD ["sh", "-c", "python3 server/main.py --host $HOST --port $PORT --model $MODEL"]

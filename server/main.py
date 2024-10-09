@@ -13,14 +13,13 @@ from router.health_check_route import health_check_router
 from router.generation_route import generation_router
 from router.queue_route import queue_router
 from router.metrics_route import metrics_router
-
-# from prometheus_client import make_asgi_app
 from globals import app_instance
 from router.status_route import status_route
 from router.models_route import models_route
 from model_utils.download import check_and_download_model_files
-from model_utils.model_config import get_model_type
+from model_utils.model_config import get_model_type, get_repo_id
 from gaas.image_gen import ImageGen
+from gaas.instruction_gen import InstructionGen
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,10 +31,13 @@ async def lifespan(app: FastAPI):
     await asyncio.to_thread(check_and_download_model_files)
     # Instantiate the GAAS generation model into memory based on the startup model type
     model_type = get_model_type()
+    repo_id = get_repo_id()
     if model_type == "image":
-        app.state.image_gen = ImageGen()
+        app.state.gaas = ImageGen(model_name=repo_id, model_files_local=False)
+    elif model_type == "instruction":
+        app.state.gaas = InstructionGen(model_name=repo_id, model_files_local=False)
 
-    app.state.queue_manager = QueueManager(gaas=app.state.image_gen)
+    app.state.queue_manager = QueueManager(gaas=app.state.gaas)
     asyncio.create_task(app.state.queue_manager.process_jobs())
     yield
 
@@ -69,10 +71,6 @@ app.include_router(models_route, prefix="/api")
 app.include_router(queue_router, prefix="/api")
 app.include_router(metrics_router)
 
-# Creating an ASGI app for Prometheus metrics
-# metrics_app = make_asgi_app()
-# app.mount("/metrics", metrics_app)
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="0.0.0.0", type=str, help="Host IP address")
@@ -86,4 +84,4 @@ if __name__ == "__main__":
 
     import uvicorn
 
-    uvicorn.run("main:app", host=args.host, port=args.port, reload=True)
+    uvicorn.run("main:app", host=args.host, port=args.port, reload=False)

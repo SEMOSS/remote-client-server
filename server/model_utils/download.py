@@ -6,7 +6,7 @@ import subprocess
 import time
 from typing import Optional
 from huggingface_hub import snapshot_download
-from model_utils.model_config import get_model_config
+from model_utils.model_config import get_model_config, get_current_model
 from globals.globals import set_server_status
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ def verify_model_files(short_name: str, update_status: Optional[bool] = False) -
     """
     model_config = get_model_config()
     expected_model_class = model_config.get("expected_model_class")
+
     path = f"/app/model_files/{short_name}"
     model_index_path = os.path.join(path, "model_index.json")
     if not os.path.exists(path) or not os.listdir(path):
@@ -59,53 +60,57 @@ def verify_model_files(short_name: str, update_status: Optional[bool] = False) -
         return message
 
 
-# This function is not currently in use but can be used to download model files dynamically.
+# This function can be used to download model files dynamically.
 # The main problem is how slow this operation is when run inside the container
 def check_and_download_model_files():
     """
-    Check if the model files exist and are for the correct model type.
+    Check if the model files exist and are for the correct model.
     If not, delete existing files and download the correct ones.
     """
-    set_server_status("Downloading model files...")
+    set_server_status("Checking model files...")
+    short_name = get_current_model()
+    logger.info(f"Checking model files for {short_name} ...")
 
-    LOCAL_MODEL_DIR = "/app/model_files/pixart"
+    LOCAL_MODEL_DIR = f"/app/model_files/{short_name}"
+    # LOCAL_MODEL_DIR = f"C://Users//rweiler//Desktop//REPOS//remote-client-server//model_files//{short_name}"
+    logger.info(f"Model directory: {LOCAL_MODEL_DIR}")
     model_config = get_model_config()
     if not model_config:
         logger.error("Model configuration not found.")
         return
 
     model_repo_id = model_config.get("model_repo_id")
-    expected_model_class = model_config.get("expected_model_class")
-
-    model_index_path = os.path.join(LOCAL_MODEL_DIR, "model_index.json")
+    required_files = model_config.get("required_files", [])
 
     # Check if directory exists and is not empty
-    if not os.path.exists(LOCAL_MODEL_DIR) or not os.listdir(LOCAL_MODEL_DIR):
-        logger.info("Model directory not found or empty. Downloading model files...")
-        # download_model_files(model_repo_id, LOCAL_MODEL_DIR)
+    if not os.path.exists(LOCAL_MODEL_DIR):
+        logger.info(
+            f"Model directory not found for {short_name}. Downloading model files..."
+        )
+        download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
+        return
+    elif not os.listdir(LOCAL_MODEL_DIR):
+        logger.info("Model directory is empty. Downloading model files...")
         download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
         return
 
-    # Check if model_index.json exists
-    if not os.path.exists(model_index_path):
-        download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
-        return
+    # Check for the presence of required files
+    missing_files = []
+    for file_name in required_files:
+        file_path = os.path.join(LOCAL_MODEL_DIR, file_name)
+        if not os.path.exists(file_path):
+            missing_files.append(file_name)
 
-    # Parse model_index.json and check _class_name
-    try:
-        with open(model_index_path, "r") as f:
-            model_info = json.load(f)
-
-        currently_downloaded_model = model_info.get("_class_name")
-        if currently_downloaded_model != expected_model_class:
-            # download_model_files(model_repo_id, LOCAL_MODEL_DIR)
-            download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
-        else:
-            logger.info(f"Correct model files for {expected_model_class} found.")
-            set_server_status("ready")
-    except json.JSONDecodeError:
-        # download_model_files(model_repo_id, LOCAL_MODEL_DIR)
+    if missing_files:
+        logger.info(
+            f"Missing required files {missing_files}. Downloading model files..."
+        )
+        # remove the incomplete model directory before re-downloading
+        shutil.rmtree(LOCAL_MODEL_DIR)
         download_model_files_v2(model_repo_id, LOCAL_MODEL_DIR)
+    else:
+        logger.info(f"All required files for model '{short_name}' are present.")
+        set_server_status("ready")
 
 
 def clear_directory(directory):
