@@ -11,6 +11,7 @@ The following models are currently supported. Use the `MODEL` environment variab
 
 - Image Generation 
     - MODEL: `PixArt-alpha/PixArt-XL-2-1024-MS` -- SHORTNAME : `pixart`
+    - MODEL: `Phi-3-mini-128k-instruct` -- SHORTNAME : `phi-3-mini-128k-instruct`
 
 ## PyTorch/CUDA
 - You can test your local PyTorch/CUDA installation by using the `utils/torch_test.ipynb` notebook.
@@ -18,12 +19,16 @@ The following models are currently supported. Use the `MODEL` environment variab
 ## Downloading Model Files
 - The model files are too large to store on github and are downloaded at the start up of the Docker container.
 - Additionally, the model files are too large to store more than one model at a time in a Docker container. Refer to `download.py` for logic on how the model files are checked and downloaded on server start up.
-- When developing locally, you can download the model files using the `utils/dl_model_files.py` script or just have the start up lifecycle do it for you (This will remove any existing files in model_files).
+- When developing locally, you can download tdhe model files using the `utils/dl_model_files.py` script or just have the start up lifecycle do it for you (This will remove any existing files in model_files).
 
 ## Running the Server Locally
 - You can run the server locally using the `server/main.py` script.
 ```bash
 python server/main.py --model pixart
+```
+- Specify the model
+```
+python server/main.py --model "phi-3-mini-128k-instruct"
 ```
 - You can specify the host and port using the `--host` and `--port` flags.
 ```bash

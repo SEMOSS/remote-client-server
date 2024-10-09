@@ -1,16 +1,22 @@
 import os
 import logging
-from pydantic_models.models import ImageRequest
+from pydantic_models.models import ImageRequest, InstructionRequest
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_MODELS = {
     "pixart": {
         "model_repo_id": "PixArt-alpha/PixArt-XL-2-1024-MS",
-        "expected_model_class": "PixArtAlphaPipeline",
         "short_name": "pixart",
         "type": "image",
-    }
+        "required_files": ["model_index.json"],
+    },
+    "phi-3-mini-128k-instruct": {
+        "model_repo_id": "microsoft/Phi-3-mini-128k-instruct",
+        "short_name": "phi-3-mini-128k-instruct",
+        "type": "instruction",
+        "required_files": ["config.json", "generation_config.json"],
+    },
 }
 
 
@@ -39,6 +45,16 @@ def get_model_config() -> dict:
         logger.error(f"Model {model} is not supported.")
         return None
     return model_config
+
+
+def get_repo_id() -> str:
+    """
+    Get the repo ID for the current model.
+    Returns:
+        str: Model repo ID
+    """
+    model_config = get_model_config()
+    return model_config.get("model_repo_id")
 
 
 def get_model_type() -> str:
@@ -75,3 +91,8 @@ def verify_payload(request: dict):
         return None
     elif model == "pixart" or model == "PixArt-alpha/PixArt-XL-2-1024-MS":
         return ImageRequest(**request)
+    elif (
+        model == "phi-3-mini-128k-instruct"
+        or model == "microsoft/Phi-3-mini-128k-instruct"
+    ):
+        return InstructionRequest(**request)

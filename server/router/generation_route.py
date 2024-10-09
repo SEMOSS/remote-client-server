@@ -32,11 +32,11 @@ async def http_generate(request: Request):
                 queue_position = await queue_manager.get_job_position(job_id)
                 yield f"data: {json.dumps({'status': 'waiting', 'message': f'Your position in the queue is: {queue_position + 1}'})}\n\n"
             elif status == "processing":
-                yield f"data: {json.dumps({'status': 'processing', 'message': 'Generating image...'})}\n\n"
+                yield f"data: {json.dumps({'status': 'processing', 'message': 'Generating...'})}\n\n"
             elif status == "complete":
                 result = await queue_manager.get_job_result(job_id)
                 result["status"] = "complete"
-                result["message"] = "Image generation complete."
+                result["message"] = "Generation complete."
                 logger.info(f"Job {job_id} completed.")
                 yield f"data: {json.dumps(result)}\n\n"
                 break
