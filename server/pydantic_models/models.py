@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+from typing import Optional
 
 
 class ImageRequest(BaseModel):
@@ -17,6 +18,13 @@ class ImageRequest(BaseModel):
 class InstructionRequest(BaseModel):
     model: str
     task: str
-    temp: float = 0.1
-    prob: float = 0.2
-    max_tokens: int = 1024
+    temp: Optional[float] = 0.1
+    prob: Optional[float] = 0.2
+    max_tokens: Optional[int] = 2048
+
+    @field_validator("temp", "prob", "max_tokens", mode="before")
+    def set_defaults(cls, v, info):
+        if v is not None:
+            return v
+        defaults = {"temp": 0.1, "prob": 0.2, "max_tokens": 1024}
+        return defaults[info.field_name]
