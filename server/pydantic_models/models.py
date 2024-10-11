@@ -15,9 +15,10 @@ class ImageRequest(BaseModel):
     file_name: str = "client_x.jpg"
 
 
-class InstructionRequest(BaseModel):
+class TextRequest(BaseModel):
     model: str
     task: str
+    operation: str
     temp: Optional[float] = 0.1
     prob: Optional[float] = 0.2
     max_tokens: Optional[int] = 2048

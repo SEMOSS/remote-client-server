@@ -1,55 +1,12 @@
-import os
 import logging
-from typing import Optional
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-from globals.globals import set_server_status
+from gaas.text_gen.abstract_text_gen import AbstractTextGen
 
 logger = logging.getLogger(__name__)
 
 
-class InstructionGen:
-    def __init__(
-        self,
-        model_name: str = "microsoft/Phi-3-mini-128k-instruct",
-        device: str = "cuda:0",
-        model_files_local: Optional[bool] = False,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        if model_files_local:
-            model_files_path = os.path.join(script_dir, "..", "..", "model_files")
-        else:
-            model_files_path = "/app/model_files/phi-3-mini-128k-instruct"
-
-        self.model_name = model_name
-        self.seed = torch.random.manual_seed(0)
-
-        try:
-            logger.info("Loading the model from path: %s", model_files_path)
-            logger.info("Initializing InstructionGen...")
-            set_server_status("Initializing InstructionGen...")
-
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.model_name,
-                device_map="cuda",
-                torch_dtype="auto",
-                trust_remote_code=True,
-            )
-
-            tokenizer = AutoTokenizer.from_pretrained(model_name)
-            self.pipe = pipeline(
-                "text-generation",
-                model=self.model,
-                tokenizer=tokenizer,
-            )
-
-        except Exception as e:
-            logger.error("Failed to initialize InstructionGen: %s", e)
-            set_server_status("InstructionGen FAILED to initialize.")
-            raise
+class Instruct(AbstractTextGen):
+    def __init__(self, model_name: str, **kwargs):
+        super().__init__(model_name=model_name, **kwargs)
 
     def ask_model(
         self, prompt: str, temp: float = 0.1, prob: float = 0.2, max_tokens: int = 1024

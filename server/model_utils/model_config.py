@@ -1,6 +1,6 @@
 import os
 import logging
-from pydantic_models.models import ImageRequest, InstructionRequest
+from pydantic_models.models import ImageRequest, TextRequest
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ SUPPORTED_MODELS = {
     "phi-3-mini-128k-instruct": {
         "model_repo_id": "microsoft/Phi-3-mini-128k-instruct",
         "short_name": "phi-3-mini-128k-instruct",
-        "type": "instruction",
+        "type": "text",
         "required_files": ["config.json", "generation_config.json"],
     },
 }
@@ -57,6 +57,16 @@ def get_repo_id() -> str:
     return model_config.get("model_repo_id")
 
 
+def get_short_name() -> str:
+    """
+    Get the short name for the current model.
+    Returns:
+        str: Model short name
+    """
+    model_config = get_model_config()
+    return model_config.get("short_name")
+
+
 def get_model_type() -> str:
     """
     Get the type of the current model.
@@ -95,4 +105,4 @@ def verify_payload(request: dict):
         model == "phi-3-mini-128k-instruct"
         or model == "microsoft/Phi-3-mini-128k-instruct"
     ):
-        return InstructionRequest(**request)
+        return TextRequest(**request)

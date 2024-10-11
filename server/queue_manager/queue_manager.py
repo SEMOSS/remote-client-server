@@ -101,4 +101,4 @@ class QueueManager:
         queue_size_gauge.set(self.queue.qsize())
 
     def model_switch(self, request):
-        return self.gaas.generate(**request)
+        return self.gaas.generate(request)

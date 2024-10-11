@@ -24,7 +24,7 @@ The following models are currently supported. Use the `MODEL` environment variab
 ## Running the Server Locally
 - You can run the server locally using the `server/main.py` script.
 ```bash
-python server/main.py --model pixart
+python server/main.py --model pixart --local_files
 ```
 - Specify the model
 ```
@@ -32,7 +32,7 @@ python server/main.py --model "phi-3-mini-128k-instruct"
 ```
 - You can specify the host and port using the `--host` and `--port` flags.
 ```bash
-python main.py --host "127.0.0.1" --port 5000 
+python main.py --host "127.0.0.1" --port 5000 --local_files
 ``` 
 
 ## Port 
