@@ -18,7 +18,7 @@ from router.status_route import status_route
 from router.models_route import models_route
 from model_utils.download import check_and_download_model_files
 from model_utils.model_config import get_model_type, get_repo_id
-from server.gaas.image_gen.image_gen import ImageGen
+from gaas.image_gen.image_gen import ImageGen
 from gaas.text_gen.text_gen import TextGen
 
 logging.basicConfig(level=logging.INFO)

@@ -10,12 +10,14 @@ SUPPORTED_MODELS = {
         "short_name": "pixart",
         "type": "image",
         "required_files": ["model_index.json"],
+        "use_flash_attention": False,
     },
     "phi-3-mini-128k-instruct": {
         "model_repo_id": "microsoft/Phi-3-mini-128k-instruct",
         "short_name": "phi-3-mini-128k-instruct",
         "type": "text",
         "required_files": ["config.json", "generation_config.json"],
+        "use_flash_attention": True,
     },
 }
 
@@ -75,6 +77,16 @@ def get_model_type() -> str:
     """
     model_config = get_model_config()
     return model_config.get("type", "")
+
+
+def get_flash_attention() -> bool:
+    """
+    Get the flash attention availability for the current model.
+    Returns:
+        bool: Flash attention availability
+    """
+    model_config = get_model_config()
+    return model_config.get("use_flash_attention", False)
 
 
 def get_short_name_from_request(request: dict) -> str:

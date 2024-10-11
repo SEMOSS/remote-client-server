@@ -7,6 +7,7 @@ from io import BytesIO
 import base64
 import logging
 from globals.globals import set_server_status
+from model_utils.model_config import get_short_name
 
 logger = logging.getLogger(__name__)
 
@@ -15,35 +16,40 @@ class ImageGen:
     def __init__(
         self,
         model_name: str = "PixArt-alpha/PixArt-XL-2-1024-MS",
-        model_files_local: Optional[bool] = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        if model_files_local:
-            model_files_path = os.path.join(script_dir, "..", "..", "model_files")
-        else:
-            model_files_path = "/app/model_files/pixart"
-
         self.model_name = model_name
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self._load_model()
+
+    def _load_model(self):
+        short_name = get_short_name()
+        # Used in development mode if you are running outside of a docker container otherwise model files should be loaded in attached volume
+        model_files_local = os.environ.get("LOCAL_FILES") == "True"
+        if model_files_local:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            model_files_path = os.path.join(
+                script_dir, "..", "..", "model_files", short_name
+            )
+        else:
+            model_files_path = f"/app/model_files/{short_name}"
+        logger.info(f"Loading the model from path: {model_files_path}")
 
         try:
-            logger.info("Loading the model from path: %s", model_files_path)
-            set_server_status("Initializing ImageGen...")
             # TODO: Change this to generic pipeline
             self.pipe = PixArtAlphaPipeline.from_pretrained(
                 # If you want to download the model files dynamically, use `self.model_name` instead of the model directory below
                 model_files_path,
                 torch_dtype=(
-                    torch.float16 if self.device.type == "cuda" else torch.float32
+                    torch.float16
+                    if self.device.type == "cuda" or self.device.type == "cuda:0"
+                    else torch.float32
                 ),
                 use_safetensors=True,
             )
             self.pipe.to(self.device)
-            self.pipe.enable_model_cpu_offload()
-            logger.info("Model loaded successfully.")
+            logger.info("Image model loaded successfully.")
             set_server_status("READY: ImageGen initialized.")
 
         except Exception as e:
