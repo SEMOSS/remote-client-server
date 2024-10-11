@@ -18,8 +18,8 @@ from router.status_route import status_route
 from router.models_route import models_route
 from model_utils.download import check_and_download_model_files
 from model_utils.model_config import get_model_type, get_repo_id
-from gaas.image_gen import ImageGen
-from gaas.instruction_gen import InstructionGen
+from server.gaas.image_gen.image_gen import ImageGen
+from gaas.text_gen.text_gen import TextGen
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,8 +34,8 @@ async def lifespan(app: FastAPI):
     repo_id = get_repo_id()
     if model_type == "image":
         app.state.gaas = ImageGen(model_name=repo_id, model_files_local=False)
-    elif model_type == "instruction":
-        app.state.gaas = InstructionGen(model_name=repo_id, model_files_local=False)
+    elif model_type == "text":
+        app.state.gaas = TextGen(model_name=repo_id)
 
     app.state.queue_manager = QueueManager(gaas=app.state.gaas)
     asyncio.create_task(app.state.queue_manager.process_jobs())
@@ -76,11 +76,19 @@ if __name__ == "__main__":
     parser.add_argument("--host", default="0.0.0.0", type=str, help="Host IP address")
     parser.add_argument("--port", default=8888, type=int, help="Port number")
     parser.add_argument("--model", default="pixart", type=str, help="Model name")
-
-    if parser.parse_args().model:
-        os.environ["MODEL"] = parser.parse_args().model
+    parser.add_argument(
+        "--local_files", action="store_true", help="Use local model files"
+    )
 
     args = parser.parse_args()
+
+    if args.model:
+        os.environ["MODEL"] = args.model
+
+    if args.local_files:
+        os.environ["LOCAL_FILES"] = "True"
+    else:
+        os.environ["LOCAL_FILES"] = "False"
 
     import uvicorn
 

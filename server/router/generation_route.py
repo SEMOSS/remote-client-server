@@ -13,7 +13,7 @@ generation_router = APIRouter()
 
 @generation_router.post("/generate")
 async def http_generate(request: Request):
-    logger.info(f"Received HTTP request: {request}")
+    logger.info(f"Received HTTP request")
 
     app = request.app
     queue_manager = app.state.queue_manager

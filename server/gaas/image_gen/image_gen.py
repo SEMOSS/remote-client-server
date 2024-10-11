@@ -15,12 +15,11 @@ class ImageGen:
     def __init__(
         self,
         model_name: str = "PixArt-alpha/PixArt-XL-2-1024-MS",
-        device: str = "cuda:0",
         model_files_local: Optional[bool] = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
         if model_files_local:
