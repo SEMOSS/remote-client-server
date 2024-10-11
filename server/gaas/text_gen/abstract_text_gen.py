@@ -2,9 +2,10 @@ import os
 import logging
 from abc import ABC, abstractmethod
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from transformers import AutoModelForCausalLM, pipeline
 from globals.globals import set_server_status
 from model_utils.model_config import get_short_name, get_flash_attention
+from gaas.tokenizer.tokenizer import Tokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,8 @@ class AbstractTextGen(ABC):
                 **model_kwargs,
             )
 
-            tokenizer = AutoTokenizer.from_pretrained(model_files_path)
+            # tokenizer = AutoTokenizer.from_pretrained(model_files_path)
+            tokenizer = Tokenizer().tokenizer
             self.pipe = pipeline(
                 "text-generation",
                 model=self.model,
