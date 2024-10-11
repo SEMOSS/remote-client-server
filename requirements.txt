@@ -12,10 +12,12 @@ SentencePiece
 transformers
 uvicorn
 huggingface_hub[cli]
-
 paddleocr
 paddlepaddle
 paddlepaddle-gpu
 pytesseract
 prometheus_client
 timm
+torch
+torchvision
+torchaudio

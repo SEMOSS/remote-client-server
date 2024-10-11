@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from globals.globals import set_server_status
-from model_utils.model_config import get_short_name
+from model_utils.model_config import get_short_name, get_flash_attention
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,22 @@ class AbstractTextGen(ABC):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model_name = model_name
         self.seed = torch.random.manual_seed(0)
-
+        self.flash_attn_available = self._check_flash_attention()
         self._load_model()
+
+    def _check_flash_attention(self):
+        use_flash_attention = get_flash_attention()
+        if not use_flash_attention:
+            logger.info("Flash attention is not available for this model.")
+            return False
+        try:
+            import flash_attn  # type: ignore
+
+            logger.info("Flash attention is available.")
+            return True
+        except ImportError:
+            logger.warning("Flash attention is not available.")
+            return False
 
     def _load_model(self):
         short_name = get_short_name()
@@ -35,11 +49,17 @@ class AbstractTextGen(ABC):
         logger.info(f"Loading the model from path: {model_files_path}")
 
         try:
+            model_kwargs = {
+                "device_map": "cuda",
+                "torch_dtype": "auto",
+                "trust_remote_code": True,
+            }
+            if self.flash_attn_available:
+                model_kwargs["attn_implementation"] = "flash_attention_2"
+
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_files_path,
-                device_map="cuda",
-                torch_dtype="auto",
-                trust_remote_code=True,
+                **model_kwargs,
             )
 
             tokenizer = AutoTokenizer.from_pretrained(model_files_path)
