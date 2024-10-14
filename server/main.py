@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     model_type = get_model_type()
     repo_id = get_repo_id()
     if model_type == "image":
-        app.state.gaas = ImageGen(model_name=repo_id, model_files_local=False)
+        app.state.gaas = ImageGen(model_name=repo_id)
     elif model_type == "text":
         app.state.gaas = TextGen(model_name=repo_id)
 
