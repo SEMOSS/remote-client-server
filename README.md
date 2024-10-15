@@ -68,8 +68,6 @@ docker run --rm -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus
 
 - `http://localhost:8888/api/status` - Returns an object with values for the current model, queue size, GPU utilization and server status.
 
-- `http://localhost:8888/api/models/{model}` - Takes a model short name as a parameter and returns whether the correct model files are present in the model_files directory.
-
 - `http://localhost:8888/api/queue` - Returns the current queue size as a plain text response. (IE: "queue_size 0")
 
 - `http://localhost:8888/metrics` - Returns Prometheus metrics.
