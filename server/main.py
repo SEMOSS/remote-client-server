@@ -9,17 +9,17 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from queue_manager.queue_manager import QueueManager
+from gaas.image_gen.image_gen import ImageGen
+from gaas.text_gen.text_gen import TextGen
+from globals import app_instance
 from router.health_check_route import health_check_router
 from router.generation_route import generation_router
 from router.queue_route import queue_router
 from router.metrics_route import metrics_router
-from globals import app_instance
 from router.status_route import status_route
-from router.models_route import models_route
+from router.reclaim_route import reclaim_route
 from model_utils.download import check_and_download_model_files
 from model_utils.model_config import get_model_type, get_repo_id
-from gaas.image_gen.image_gen import ImageGen
-from gaas.text_gen.text_gen import TextGen
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,7 +38,9 @@ async def lifespan(app: FastAPI):
         app.state.gaas = TextGen(model_name=repo_id)
 
     app.state.queue_manager = QueueManager(gaas=app.state.gaas)
-    asyncio.create_task(app.state.queue_manager.process_jobs())
+    app.state.queue_manager_task = asyncio.create_task(
+        app.state.queue_manager.process_jobs()
+    )
     yield
 
 
@@ -67,8 +69,8 @@ async def validation_exception_handler(request, exc):
 app.include_router(health_check_router, prefix="/api")
 app.include_router(generation_router, prefix="/api")
 app.include_router(status_route, prefix="/api")
-app.include_router(models_route, prefix="/api")
 app.include_router(queue_router, prefix="/api")
+app.include_router(reclaim_route, prefix="/api")
 app.include_router(metrics_router)
 
 if __name__ == "__main__":
