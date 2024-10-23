@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator
-from typing import Optional
+from typing import Optional, List
 
 
 class ImageRequest(BaseModel):
@@ -29,3 +29,9 @@ class TextRequest(BaseModel):
             return v
         defaults = {"temp": 0.1, "prob": 0.2, "max_tokens": 1024}
         return defaults[info.field_name]
+
+
+class GlinerRequest(BaseModel):
+    model: str
+    text: str
+    labels: List[str]

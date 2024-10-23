@@ -71,12 +71,23 @@ def check_and_download_model_files():
     short_name = get_current_model()
     logger.info(f"Checking model files for {short_name} ...")
 
-    LOCAL_MODEL_DIR = f"/app/model_files/{short_name}"
-    # LOCAL_MODEL_DIR = f"C://Users//rweiler//Desktop//REPOS//remote-client-server//model_files//{short_name}"
+    use_local_files = os.environ.get("LOCAL_FILES", "False") == "True"
+
+    if use_local_files:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        LOCAL_MODEL_DIR = os.path.join(
+            current_dir, "..", "..", "model_files", short_name
+        )
+        LOCAL_MODEL_DIR = os.path.abspath(LOCAL_MODEL_DIR)
+    else:
+        LOCAL_MODEL_DIR = f"/app/model_files/{short_name}"
+
     logger.info(f"Model directory: {LOCAL_MODEL_DIR}")
     model_config = get_model_config()
     if not model_config:
-        logger.error("Model configuration not found.")
+        logger.error(
+            "Model configuration not found. Please update the model_config object with your model or check the requested model ID."
+        )
         return
 
     model_repo_id = model_config.get("model_repo_id")

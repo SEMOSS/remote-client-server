@@ -21,10 +21,11 @@ COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 # RUN pip3 install -r requirements.txt
 
-# Setting up flash-attention
-RUN pip3 install packaging ninja
-RUN git clone https://github.com/HazyResearch/flash-attention.git /tmp/flash-attention
-RUN pip3 install /tmp/flash-attention --no-build-isolation
+# RUN if [ "$INSTALL_FLASH_ATTENTION" = "true" ]; then \
+#         pip3 install packaging ninja && \
+#         git clone https://github.com/HazyResearch/flash-attention.git /tmp/flash-attention && \
+#         pip3 install /tmp/flash-attention --no-build-isolation; \
+#     fi
 
 COPY . .
 

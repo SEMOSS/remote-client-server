@@ -4,6 +4,7 @@ pytest
 pillow
 fastapi
 ftfy
+gliner
 diffusers
 idna
 numpy
