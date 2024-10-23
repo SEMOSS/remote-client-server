@@ -8,7 +8,7 @@ def download_model_files():
     """
     model_repo_id = "urchade/gliner_multi-v2.1"
 
-    local_model_dir = "./model_files/gliner-multi-v2.1"
+    local_model_dir = "./model_files/gliner-multi-v2-1"
 
     snapshot_download(repo_id=model_repo_id, local_dir=local_model_dir)
 

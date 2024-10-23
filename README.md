@@ -12,7 +12,7 @@ The following models are currently supported. Use the `MODEL` environment variab
 - Image Generation 
     - MODEL: `PixArt-alpha/PixArt-XL-2-1024-MS` -- SHORTNAME : `pixart`
     - MODEL: `microsoft/Phi-3-mini-128k-instruct` -- SHORTNAME : `phi-3-mini-128k-instruct`
-    - MODEL: `urchade/gliner_multi-v2.1` -- SHORTNAME : `gliner-multi-v2.1`
+    - MODEL: `urchade/gliner_multi-v2.1` -- SHORTNAME : `gliner-multi-v2-1`
 
 ## PyTorch/CUDA
 - You can test your local PyTorch/CUDA installation by using the `utils/torch_test.ipynb` notebook.
@@ -78,6 +78,7 @@ docker run --rm -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus
 - Add the a Pydantic model to the `server/pydantic_models` directory to support the new model.
 - Update the verify_payload method in `model_utils/model_config.py` to pull the correct Pydantic model on request.
 - Update the lifespan event in `server/main.py` to add the model type to the if block and load your new class.
+- NOTE: Do not use any special characters besides "-" in the short_name of the model. The Kubernetes deployment will not work if you do.
 
 
 ## Formatting

@@ -19,9 +19,10 @@ SUPPORTED_MODELS = {
         "required_files": ["config.json", "generation_config.json"],
         "use_flash_attention": True,
     },
-    "gliner-multi-v2.1": {
+    "gliner-multi-v2-1": {
         "model_repo_id": "urchade/gliner_multi-v2.1",
-        "short_name": "gliner-multi-v2.1",
+        # NOTE: our kube deployments can't have '.' in the model name.. so we use '-' instead
+        "short_name": "gliner-multi-v2-1",
         "type": "NER",
         "required_files": ["gliner_config.json"],
         "use_flash_attention": False,
@@ -125,5 +126,5 @@ def verify_payload(request: dict):
         or model == "microsoft/Phi-3-mini-128k-instruct"
     ):
         return TextRequest(**request)
-    elif model == "gliner-multi-v2.1" or model == "urchade/gliner_multi-v2.1":
+    elif model == "gliner-multi-v2-1" or model == "urchade/gliner_multi-v2.1":
         return GlinerRequest(**request)
