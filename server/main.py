@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from queue_manager.queue_manager import QueueManager
 from gaas.image_gen.image_gen import ImageGen
 from gaas.text_gen.text_gen import TextGen
+from gaas.gliner_gen.gliner_gen import GlinerGen
 from globals import app_instance
 from router.health_check_route import health_check_router
 from router.generation_route import generation_router
@@ -36,6 +37,8 @@ async def lifespan(app: FastAPI):
         app.state.gaas = ImageGen(model_name=repo_id)
     elif model_type == "text":
         app.state.gaas = TextGen(model_name=repo_id)
+    elif model_type == "NER":
+        app.state.gaas = GlinerGen(model_name=repo_id)
 
     app.state.queue_manager = QueueManager(gaas=app.state.gaas)
     app.state.queue_manager_task = asyncio.create_task(
