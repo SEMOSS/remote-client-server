@@ -34,4 +34,5 @@ class TextRequest(BaseModel):
 class GlinerRequest(BaseModel):
     model: str
     text: str
-    labels: List[str]
+    entities: List[str]
+    mask_entities: Optional[List[str]] = []

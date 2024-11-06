@@ -45,9 +45,9 @@ If you run the container without a volume attached, make sure the model files ar
 docker run -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus all --name remote-client-server remote-client-server
 ```
 
-To run the container with a volume attached with the model files, first create the volume and then use the following command to start the container with the volume attached. 
+To run the container with a volume attached with the model files, first create the volume and then use the following command to start the container with the volume attached. (NOTE: The volume name is `pixart-volume` in this example, you can name a volume whatever you like).
 ```bash
-docker run --rm -p 8888:8888 -e MODEL=pixart -e HOST=0.0.0.0 -e PORT=8888 --gpus all --name remote-client-server -v pixart-volume:/app/model_files remote-client-server
+docker run --rm -p 8888:8888 -e MODEL=gliner-multi-v2-1 -e HOST=0.0.0.0 -e PORT=8888 --gpus all --name remote-client-server -v pixart-volume:/app/model_files remote-client-server
 ```
 
 ## Docker Volumes

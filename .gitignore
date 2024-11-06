@@ -14,6 +14,9 @@ build/
 # Virtual environment
 venv/
 env/
+.venv/
+
+uv.lock
 
 # IDE files
 .vscode/

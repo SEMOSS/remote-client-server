@@ -1,6 +1,10 @@
 import os
 import logging
-from pydantic_models.models import ImageRequest, TextRequest, GlinerRequest
+from pydantic_models.request_models import (
+    ImageRequest,
+    TextRequest,
+    GlinerRequest,
+)
 
 logger = logging.getLogger(__name__)
 
