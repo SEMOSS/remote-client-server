@@ -11,7 +11,7 @@ SUPPORTED_MODELS = {
         "short_name": "phi-3-mini-128k-instruct",
         "type": "text",
         "required_files": ["config.json", "generation_config.json"],
-        "use_flash_attention": True,
+        "use_flash_attention": False,
     },
     "gliner-multi-v2-1": {
         "model_repo_id": "urchade/gliner_multi-v2.1",

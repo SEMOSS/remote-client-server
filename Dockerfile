@@ -1,6 +1,6 @@
 ARG BASE_REGISTRY=docker.io
 ARG BASE_IMAGE=nvidia/cuda
-ARG BASE_TAG=12.1.0-devel-ubuntu22.04
+ARG BASE_TAG=12.4.0-devel-ubuntu22.04
 
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS builder
 
@@ -19,7 +19,6 @@ WORKDIR /app
 
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
-# RUN pip3 install -r requirements.txt
 
 # RUN if [ "$INSTALL_FLASH_ATTENTION" = "true" ]; then \
 #         pip3 install packaging ninja && \
@@ -27,7 +26,8 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 #         pip3 install /tmp/flash-attention --no-build-isolation; \
 #     fi
 
-COPY . .
+# COPY . .
+COPY server server
 
 ENV PYTHONPATH="/app/server" 
 ENV NVIDIA_VISIBLE_DEVICES=all
