@@ -20,6 +20,13 @@ SUPPORTED_MODELS = {
         "required_files": ["gliner_config.json"],
         "use_flash_attention": False,
     },
+    "gliner-large-v2-5": {
+        "model_repo_id": "gliner-community/gliner_large-v2.5",
+        "short_name": "gliner-large-v2-5",
+        "type": "ner",
+        "required_files": ["gliner_config.json"],
+        "use_flash_attention": False,
+    },
     "codellama-13b": {
         "model_repo_id": "codellama/CodeLlama-13b-hf",
         "short_name": "codellama-13b",
