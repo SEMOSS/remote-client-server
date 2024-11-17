@@ -95,28 +95,6 @@ def get_short_name_from_request(request: dict) -> str:
     return None
 
 
-# def verify_payload(request: dict):
-#     model = get_short_name_from_request(request)
-
-#     if model == None:
-#         logger.error("The payload verification failed.")
-#         return None
-#     elif model == "pixart" or model == "PixArt-alpha/PixArt-XL-2-1024-MS":
-#         return ImageRequest(**request)
-#     elif (
-#         model == "phi-3-mini-128k-instruct"
-#         or model == "microsoft/Phi-3-mini-128k-instruct"
-#         or model == "codellama-13b"
-#         or model == "codellama/CodeLlama-13b-hf"
-#     ):
-#         if "operation" in request and request["operation"] == "json":
-#             return TextJSONRequest(**request)
-#         # This is instruct request for now
-#         return TextRequest(**request)
-#     elif model == "gliner-multi-v2-1" or model == "urchade/gliner_multi-v2.1":
-#         return GlinerRequest(**request)
-
-
 def verify_payload(request: dict):
     model_type = get_model_type()
 

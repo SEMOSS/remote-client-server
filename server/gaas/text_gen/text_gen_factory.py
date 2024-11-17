@@ -1,13 +1,17 @@
 from gaas.text_gen.operations.instruct import Instruct
 from gaas.text_gen.operations.chat import Chat
 from gaas.text_gen.operations.json import JSON
+from gaas.model_manager.model_manager import ModelManager
 
 
 class TextGenFactory:
-    def __init__(self, model_name, **kwargs):
-        self.instruct_gen = Instruct(model_name, **kwargs)
-        self.chat_gen = Chat(model_name, **kwargs)
-        self.json_gen = JSON(model_name, **kwargs)
+    """Factory class that creates and manages different text generation operations."""
+
+    def __init__(self, model_manager: ModelManager, **kwargs):
+        # Initializing generation classes with shared model manager
+        self.instruct_gen = Instruct(model_manager, **kwargs)
+        self.chat_gen = Chat(model_manager, **kwargs)
+        self.json_gen = JSON(model_manager, **kwargs)
 
     def generate(self, **kwargs):
         operation = kwargs.get("operation")
