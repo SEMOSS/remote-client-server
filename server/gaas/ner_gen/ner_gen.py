@@ -11,7 +11,7 @@ from model_utils.model_config import get_short_name
 logger = logging.getLogger(__name__)
 
 
-class GlinerGen:
+class NERGen:
     def __init__(
         self,
         model_name: str = "urchade/gliner_multi-v2.1",

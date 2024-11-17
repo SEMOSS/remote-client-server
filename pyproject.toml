@@ -28,4 +28,15 @@ dependencies = [
     "torchvision>=0.20.1",
     "transformers>=4.46.2",
     "uvicorn>=0.32.0",
+    "guidance>=0.1.16",
+    "ipykernel>=6.29.5",
 ]
+
+[tool.uv.sources]
+torch = { index = "pytorch" }
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+verify = false
