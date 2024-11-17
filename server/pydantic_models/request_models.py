@@ -31,7 +31,15 @@ class TextRequest(BaseModel):
         return defaults[info.field_name]
 
 
-class GlinerRequest(BaseModel):
+class TextJSONRequest(BaseModel):
+    model: str
+    prompt: str
+    json_schema: str
+    operation: str
+    context: Optional[str] = None
+
+
+class NERRequest(BaseModel):
     model: str
     text: str
     entities: List[str]

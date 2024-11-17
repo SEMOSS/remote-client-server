@@ -16,8 +16,6 @@ venv/
 env/
 .venv/
 
-uv.lock
-
 # IDE files
 .vscode/
 .idea/

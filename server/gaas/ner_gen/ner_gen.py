@@ -1,51 +1,22 @@
-import os
-import torch
 from typing import Any, Dict, List
 import logging
 import random
 import string
-from gliner import GLiNER
-from globals.globals import set_server_status
-from model_utils.model_config import get_short_name
+from gaas.model_manager.model_manager import ModelManager
 
 logger = logging.getLogger(__name__)
 
 
-class GlinerGen:
+class NERGen:
     def __init__(
         self,
-        model_name: str = "urchade/gliner_multi-v2.1",
+        model_manager: ModelManager,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.model_name = model_name
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self._load_model()
-
-    def _load_model(self):
-        """
-        Loads the GLiNER model from the model files path into memory.
-        """
-        short_name = get_short_name()
-        model_files_local = os.environ.get("LOCAL_FILES") == "True"
-        if model_files_local:
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            model_files_path = os.path.join(
-                script_dir, "..", "..", "..", "model_files", short_name
-            )
-            model_files_path = os.path.abspath(model_files_path)
-        else:
-            model_files_path = f"/app/model_files/{short_name}"
-
-        try:
-            self.model = GLiNER.from_pretrained(
-                model_files_path, local_files_only=True, device=self.device
-            )
-
-        except Exception as e:
-            logger.exception("Failed to initialize GLiNER: %s", e)
-            set_server_status("GLiNER FAILED to initialize.")
-            raise
+        self.model_manager = model_manager
+        self.model = model_manager.model
+        self.device = model_manager.device
 
     def generate(
         self,

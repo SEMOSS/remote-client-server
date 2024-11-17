@@ -3,12 +3,17 @@ from huggingface_hub import snapshot_download
 
 def download_model_files():
     """_summary_
+    This method is only for use in development when you want to download the model files locally.
+    Useful for inspecting the expected model files or for running outside of a docker container.
     Use the `snapshot_download` function from the `huggingface_hub` library to download the model files locally.
-    This prevents the Docker container from having to download the model files every time the container is started.
     """
-    model_repo_id = "urchade/gliner_multi-v2.1"
+    # change this
+    model_repo_id = "codellama/CodeLlama-13b-hf"
+    # change this
+    short_name = "codellama-13b"
 
-    local_model_dir = "./model_files/gliner-multi-v2-1"
+    # don't change this
+    local_model_dir = f"./model_files/{short_name}"
 
     snapshot_download(repo_id=model_repo_id, local_dir=local_model_dir)
 

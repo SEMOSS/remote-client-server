@@ -8,10 +8,11 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from gaas.model_manager.model_manager import ModelManager
 from queue_manager.queue_manager import QueueManager
 from gaas.image_gen.image_gen import ImageGen
-from gaas.text_gen.text_gen import TextGen
-from gaas.gliner_gen.gliner_gen import GlinerGen
+from gaas.text_gen.text_gen_factory import TextGenFactory
+from gaas.ner_gen.ner_gen import NERGen
 from globals import app_instance
 from router.health_check_route import health_check_router
 from router.generation_route import generation_router
@@ -22,6 +23,7 @@ from router.reclaim_route import reclaim_route
 from model_utils.download import check_and_download_model_files
 from model_utils.model_config import get_model_type, get_repo_id
 
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -30,15 +32,19 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # These are start up events... We can add shutdown events below the yield
     await asyncio.to_thread(check_and_download_model_files)
-    # Instantiate the GAAS generation model into memory based on the startup model type
+
+    # A singleton class representing the single model loaded into memory
+    model_manager = ModelManager.get_instance()
+    model_manager.initialize_model()
+
     model_type = get_model_type()
     repo_id = get_repo_id()
     if model_type == "image":
         app.state.gaas = ImageGen(model_name=repo_id)
     elif model_type == "text":
-        app.state.gaas = TextGen(model_name=repo_id)
-    elif model_type == "NER":
-        app.state.gaas = GlinerGen(model_name=repo_id)
+        app.state.gaas = TextGenFactory(model_manager=model_manager)
+    elif model_type == "ner":
+        app.state.gaas = NERGen(model_manager=model_manager)
 
     app.state.queue_manager = QueueManager(gaas=app.state.gaas)
     app.state.queue_manager_task = asyncio.create_task(

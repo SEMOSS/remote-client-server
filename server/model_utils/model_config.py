@@ -3,35 +3,12 @@ import logging
 from pydantic_models.request_models import (
     ImageRequest,
     TextRequest,
-    GlinerRequest,
+    TextJSONRequest,
+    NERRequest,
 )
+from model_utils.supported_models import SUPPORTED_MODELS
 
 logger = logging.getLogger(__name__)
-
-SUPPORTED_MODELS = {
-    "pixart": {
-        "model_repo_id": "PixArt-alpha/PixArt-XL-2-1024-MS",
-        "short_name": "pixart",
-        "type": "image",
-        "required_files": ["model_index.json"],
-        "use_flash_attention": False,
-    },
-    "phi-3-mini-128k-instruct": {
-        "model_repo_id": "microsoft/Phi-3-mini-128k-instruct",
-        "short_name": "phi-3-mini-128k-instruct",
-        "type": "text",
-        "required_files": ["config.json", "generation_config.json"],
-        "use_flash_attention": True,
-    },
-    "gliner-multi-v2-1": {
-        "model_repo_id": "urchade/gliner_multi-v2.1",
-        # NOTE: our kube deployments can't have '.' in the model name.. so we use '-' instead
-        "short_name": "gliner-multi-v2-1",
-        "type": "NER",
-        "required_files": ["gliner_config.json"],
-        "use_flash_attention": False,
-    },
-}
 
 
 def get_current_model() -> str:
@@ -88,7 +65,7 @@ def get_model_type() -> str:
         str: Model type
     """
     model_config = get_model_config()
-    return model_config.get("type", "")
+    return model_config.get("type", None)
 
 
 def get_flash_attention() -> bool:
@@ -119,16 +96,19 @@ def get_short_name_from_request(request: dict) -> str:
 
 
 def verify_payload(request: dict):
-    model = get_short_name_from_request(request)
-    if model == None:
+    model_type = get_model_type()
+
+    if model_type == None:
         logger.error("The payload verification failed.")
         return None
-    elif model == "pixart" or model == "PixArt-alpha/PixArt-XL-2-1024-MS":
+    elif model_type == "image":
         return ImageRequest(**request)
-    elif (
-        model == "phi-3-mini-128k-instruct"
-        or model == "microsoft/Phi-3-mini-128k-instruct"
-    ):
-        return TextRequest(**request)
-    elif model == "gliner-multi-v2-1" or model == "urchade/gliner_multi-v2.1":
-        return GlinerRequest(**request)
+    elif model_type == "text":
+        if "operation" in request and request["operation"] == "json":
+            return TextJSONRequest(**request)
+        else:
+            logger.error("The requested operation is not supported.")
+        # This is instruct request for now
+        # return TextRequest(**request)
+    elif model_type == "ner":
+        return NERRequest(**request)

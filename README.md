@@ -73,13 +73,16 @@ docker run --rm -p 8888:8888 -e MODEL=gliner-multi-v2-1 -e HOST=0.0.0.0 -e PORT=
 
 ## Adding New Models
 - Add a new file and class to the `app/gaas` directory to support the new model.
-- In `model_utils/model_config.py`, add the model config to the `SUPPORTED_MODELS` object.
-- The expected_model_class can be found in the `model_index.json` of the downloaded model files.
-- Add the a Pydantic model to the `server/pydantic_models` directory to support the new model.
-- Update the verify_payload method in `model_utils/model_config.py` to pull the correct Pydantic model on request.
-- Update the lifespan event in `server/main.py` to add the model type to the if block and load your new class.
+- In `model_utils/supported_models.py`, add the model config to the `SUPPORTED_MODELS` object.
+- Add the a Pydantic model to the `server/pydantic_models/request_models` file to support the new model if required.
+- Update the verify_payload method in `model_utils/model_config.py` to pull the correct Pydantic model on request if required.
+- Update the lifespan event in `server/main.py` to add the model type to the if block and load your new class if required.
 - NOTE: Do not use any special characters besides "-" in the short_name of the model. The Kubernetes deployment will not work if you do.
 
+## Principles
+- When adding new models you should only need to add a new class if the model type is not supported or you are adding a specific operation.
+- When adding a new operation (ie: instruct for text gen) then you should extend the base class.
+- There should never be situations where you are adding a model specific class (ie. LlamaGen).
 
 ## Formatting
 - This project uses the [Black](https://black.readthedocs.io/en/stable/) code formatter. Please install the Black formatter in your IDE to ensure consistent code formatting before submitting a PR.
