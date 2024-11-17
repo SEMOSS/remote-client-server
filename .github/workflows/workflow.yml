@@ -11,8 +11,29 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          # Show initial disk space
+          echo "Initial disk space:"
+          df -h
+          
+          # Remove unnecessary large packages and caches
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo apt-get clean
+          docker system prune -af
+          
+          # Show disk space after cleanup
+          echo "Disk space after cleanup:"
+          df -h
+
       - name: Set date environment variable
         run: echo "date=$(date '+%Y-%m-%d')" >> $GITHUB_ENV
+
       - name: Docker Build
         run: |
           export DOCKER_TLS_CERTDIR=""
