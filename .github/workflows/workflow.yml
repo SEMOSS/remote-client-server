@@ -32,7 +32,7 @@ jobs:
           df -h
 
       - name: Set date environment variable
-        run: echo "date=$(date '+%Y-%m-%d')" >> $GITHUB_ENV
+        run: echo "date=$(date '+%Y-%m-%d-%H%M')" >> $GITHUB_ENV
 
       - name: Docker Build
         run: |
