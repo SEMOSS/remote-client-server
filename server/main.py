@@ -20,7 +20,9 @@ from router.queue_route import queue_router
 from router.metrics_route import metrics_router
 from router.status_route import status_route
 from router.reclaim_route import reclaim_route
-from model_utils.download import check_and_download_model_files
+from model_utils.download import (
+    check_and_download_model_files,
+)
 from model_utils.model_config import get_model_type, get_repo_id
 
 
@@ -31,7 +33,13 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # These are start up events... We can add shutdown events below the yield
-    await asyncio.to_thread(check_and_download_model_files)
+    download_success = await asyncio.to_thread(check_and_download_model_files)
+
+    if not download_success:
+        logger.error("Failed to download model files")
+        # sys.exit(1)
+        yield
+        return
 
     # A singleton class representing the single model loaded into memory
     model_manager = ModelManager.get_instance()

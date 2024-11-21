@@ -8,6 +8,8 @@ LABEL maintainer="semoss@semoss.org"
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
+ENV HOME=/root
+
 RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-dev \
@@ -15,41 +17,67 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     git \
     build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    curl \
+    && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash \
+    && apt-get install -y git-lfs \
+    && git lfs install --system \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /root/.config/git
+
+RUN git config --system credential.helper store \
+    && git config --system http.sslVerify false \
+    && git config --system http.postBuffer 524288000 \
+    && git config --system http.lowSpeedLimit 1000 \
+    && git config --system http.lowSpeedTime 600 \
+    && git config --system protocol.version 2 \
+    && git config --system lfs.concurrenttransfers 4 \
+    && git config --system core.compression 0 \
+    && git config --system http.maxRequestBuffer 100M
 
 WORKDIR /app
 
-ENV UV_LINK_MODE=copy \
+RUN mkdir -p /app/model_files/.cache \
+    && chmod -R 777 /app/model_files \
+    && mkdir -p /root/.cache \
+    && chmod -R 777 /root/.cache
+
+ENV HOME=/root \
+    GIT_LFS_SKIP_SMUDGE=0 \
+    GIT_TERMINAL_PROMPT=0 \
+    GIT_LFS_PROGRESS=true \
+    GIT_TRACE=1 \
+    TRANSFORMERS_CACHE=/app/model_files/.cache \
+    HF_HOME=/app/model_files/.cache \
+    HUGGINGFACE_HUB_CACHE=/app/model_files/.cache \
+    UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
     UV_PYTHON=python3.10 \
     UV_PROJECT_ENVIRONMENT=/app \
-    # Additional UV optimizations
     UV_NO_BINARY=:all: \
     UV_SYSTEM_PYTHON=1 \
     UV_WHEELTAG=py310 \
     PIP_NO_CACHE_DIR=false \
-    PIP_CACHE_DIR=/root/.cache/pip
+    PIP_CACHE_DIR=/root/.cache/pip \
+    PYTHONPATH="/app/server" \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    HOST=0.0.0.0 \
+    PORT=8888 \
+    MODEL=gliner-multi-v2-1
 
 COPY requirements.txt uv.lock ./
 
 RUN uv pip install --no-cache \
     $([ -f uv.lock ] && echo "--requirement uv.lock" || echo "--requirement requirements.txt")
 
-# RUN if [ "$INSTALL_FLASH_ATTENTION" = "true" ]; then \
-#         pip3 install packaging ninja && \
-#         git clone https://github.com/HazyResearch/flash-attention.git /tmp/flash-attention && \
-#         pip3 install /tmp/flash-attention --no-build-isolation; \
-#     fi
-
 COPY server server
 
-ENV PYTHONPATH="/app/server" \
-    NVIDIA_VISIBLE_DEVICES=all \
-    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
-    HOST=0.0.0.0 \
-    PORT=8888 \
-    MODEL=gliner-multi-v2-1
+RUN git lfs install --system --skip-repo \
+    && chown -R root:root /app/model_files \
+    && chmod -R 777 /app/model_files \
+    && chown -R root:root /root/.cache \
+    && chmod -R 777 /root/.cache
 
 EXPOSE ${PORT}
 
