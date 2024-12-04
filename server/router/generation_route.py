@@ -24,7 +24,7 @@ async def http_generate(request: Request):
     job_id = str(uuid.uuid4())
 
     async def event_stream():
-        await queue_manager.add_job(job_id, request_model.dict())
+        await queue_manager.add_job(job_id, request_model)
 
         while True:
             status = await queue_manager.get_job_status(job_id)

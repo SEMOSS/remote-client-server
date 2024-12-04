@@ -3,6 +3,7 @@ import logging
 import random
 import string
 from gaas.model_manager.model_manager import ModelManager
+from pydantic_models.request_models import NERRequest
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +21,13 @@ class NERGen:
 
     def generate(
         self,
-        text: str,
-        entities: List[str],
-        mask_entities: List[str] = [],
-        **kwargs,
+        request: NERRequest,
     ):
         """
         Generates entities using the GLiNER model.
         """
         try:
-            response = self.model.predict_entities(text, entities)
+            response = self.model.predict_entities(request.text, request.entities)
         except Exception as e:
             logger.exception("Failed to generate output: %s", e)
             return {
@@ -37,19 +35,21 @@ class NERGen:
                 "output": [],
                 "raw_output": [],
                 "mask_values": {},
-                "input": text,
+                "input": request.text,
                 "entities": [],
             }
 
-        masked_output = self._mask_entities(text, response, mask_entities)
+        masked_output = self._mask_entities(
+            request.text, response, request.mask_entities
+        )
 
         return {
             "status": "success",
             "output": masked_output["masked_text"],
             "raw_output": response,
             "mask_values": masked_output["mask_values"],
-            "input": text,
-            "entities": entities,
+            "input": request.text,
+            "entities": request.entities,
         }
 
     def _generate_mask(self, length: int = 6) -> str:

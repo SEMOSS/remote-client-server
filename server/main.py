@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from gaas.model_manager.model_manager import ModelManager
 from queue_manager.queue_manager import QueueManager
 from gaas.image_gen.image_gen import ImageGen
-from gaas.text_gen.text_gen_factory import TextGenFactory
+from gaas.text_gen.chat import Chat
 from gaas.ner_gen.ner_gen import NERGen
 from globals import app_instance
 from router.health_check_route import health_check_router
@@ -20,6 +20,7 @@ from router.queue_route import queue_router
 from router.metrics_route import metrics_router
 from router.status_route import status_route
 from router.reclaim_route import reclaim_route
+from router.chat_completion_route import chat_completion_router
 from model_utils.download import (
     check_and_download_model_files,
 )
@@ -50,7 +51,7 @@ async def lifespan(app: FastAPI):
     if model_type == "image":
         app.state.gaas = ImageGen(model_name=repo_id)
     elif model_type == "text":
-        app.state.gaas = TextGenFactory(model_manager=model_manager)
+        app.state.gaas = Chat(model_manager=model_manager)
     elif model_type == "ner":
         app.state.gaas = NERGen(model_manager=model_manager)
 
@@ -88,6 +89,7 @@ app.include_router(generation_router, prefix="/api")
 app.include_router(status_route, prefix="/api")
 app.include_router(queue_router, prefix="/api")
 app.include_router(reclaim_route, prefix="/api")
+app.include_router(chat_completion_router, prefix="/api")
 app.include_router(metrics_router)
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ class QueueManager:
         self.lock = asyncio.Lock()
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
-    async def add_job(self, job_id: str, request: Dict[str, Any]):
+    async def add_job(self, job_id: str, request):
         await self.queue.put((job_id, request))
         self.job_status[job_id] = "queued"
         queue_size_gauge.set(self.queue.qsize())
@@ -37,7 +37,7 @@ class QueueManager:
             try:
                 async with self.lock:
                     self.job_status[job_id] = "processing"
-                logger.info(f"Processing job {job_id} for request: {request}")
+                logger.info(f"Processing job {job_id}.")
 
                 try:
                     # Running image generation in a separate thread
@@ -101,4 +101,4 @@ class QueueManager:
         queue_size_gauge.set(self.queue.qsize())
 
     def model_switch(self, request):
-        return self.gaas.generate(**request)
+        return self.gaas.generate(request)

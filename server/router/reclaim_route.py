@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from gaas.image_gen.image_gen import ImageGen
 from gaas.ner_gen.ner_gen import NERGen
-from gaas.text_gen.text_gen_factory import TextGenFactory
+from gaas.text_gen.chat import Chat
 from queue_manager.queue_manager import QueueManager
 from model_utils.model_config import SUPPORTED_MODELS, get_model_type, get_repo_id
 from model_utils.download import check_and_download_model_files
@@ -57,7 +57,7 @@ async def reclaim_model(request: Request):
         if model_type == "image":
             app.state.gaas = ImageGen(model_name=repo_id)
         elif model_type == "text":
-            app.state.gaas = TextGenFactory(model_name=repo_id)
+            app.state.gaas = Chat(model_name=repo_id)
         elif model_type == "ner":
             app.state.gaas = NERGen(model_name=repo_id)
         else:

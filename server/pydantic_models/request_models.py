@@ -1,5 +1,6 @@
 from pydantic import BaseModel, field_validator
 from typing import Optional, List
+from enum import Enum
 
 
 class ImageRequest(BaseModel):
@@ -44,3 +45,28 @@ class NERRequest(BaseModel):
     text: str
     entities: List[str]
     mask_entities: Optional[List[str]] = []
+
+
+# ----------------- Chat Completion -----------------
+class Role(str, Enum):
+    SYSTEM = "system"
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
+class Message(BaseModel):
+    role: Role
+    content: str
+
+
+class ChatCompletionRequest(BaseModel):
+    model: str
+    messages: List[Message]
+    temperature: Optional[float] = 0.5
+    top_p: Optional[float] = 0.5
+    n: Optional[int] = 1
+    stream: Optional[bool] = False
+    max_tokens: Optional[int] = None
+    presence_penalty: Optional[float] = 0
+    frequency_penalty: Optional[float] = 0
+    user: Optional[str] = None
