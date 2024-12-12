@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import List
 from transformers import AutoTokenizer
-from model_utils.model_config import get_short_name
+from model_utils.model_config import get_model_config
 
 
 class Tokenizer:
@@ -11,18 +11,18 @@ class Tokenizer:
         self.max_tokens = max_tokens
 
     def _get_tokenizer(self) -> AutoTokenizer:
-        short_name = get_short_name()
+        model = get_model_config.get("model")
         # Used in development mode if you are running outside of a docker container otherwise model files should be loaded in attached volume
         model_files_local = os.environ.get("LOCAL_FILES") == "True"
         if model_files_local:
             # Get the absolute path of the project root directory
             script_dir = Path(__file__).resolve().parent  # gaas/text_gen
             project_root = script_dir.parent.parent.parent  # Go up to project root
-            model_files_path = project_root / "model_files" / short_name
+            model_files_path = project_root / "model_files" / model
             # Convert to string and normalize
             model_files_path = str(model_files_path.resolve())
         else:
-            model_files_path = f"/app/model_files/{short_name}"
+            model_files_path = f"/app/model_files/{model}"
 
         return AutoTokenizer.from_pretrained(model_files_path, use_fast=False)
 

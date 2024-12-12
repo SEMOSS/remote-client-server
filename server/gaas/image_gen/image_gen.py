@@ -7,7 +7,7 @@ from io import BytesIO
 import base64
 import logging
 from globals.globals import set_server_status
-from model_utils.model_config import get_short_name
+from model_utils.model_config import get_model_config
 
 logger = logging.getLogger(__name__)
 
@@ -24,16 +24,16 @@ class ImageGen:
         self._load_model()
 
     def _load_model(self):
-        short_name = get_short_name()
+        model = get_model_config()
         # Used in development mode if you are running outside of a docker container otherwise model files should be loaded in attached volume
         model_files_local = os.environ.get("LOCAL_FILES") == "True"
         if model_files_local:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             model_files_path = os.path.join(
-                script_dir, "..", "..", "model_files", short_name
+                script_dir, "..", "..", "model_files", model
             )
         else:
-            model_files_path = f"/app/model_files/{short_name}"
+            model_files_path = f"/app/model_files/{model}"
         logger.info(f"Loading the model from path: {model_files_path}")
 
         try:

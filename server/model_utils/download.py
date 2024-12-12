@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import time
 from typing import Set
-from model_utils.model_config import get_model_config, get_current_model
+from model_utils.model_config import get_model_config
 from globals.globals import set_server_status
 
 logger = logging.getLogger(__name__)
@@ -283,8 +283,8 @@ def check_and_download_model_files():
     Enhanced version of check_and_download_model_files using git-lfs.
     """
     set_server_status("Checking model files...")
-    short_name = get_current_model()
-    logger.info(f"Checking model files for {short_name} ...")
+    model = get_model_config().get("model")
+    logger.info(f"Checking model files for {model} ...")
 
     # This is only true if you call it during app startup when running outside the container
     use_local_files = os.environ.get("LOCAL_FILES", "False") == "True"
@@ -293,11 +293,11 @@ def check_and_download_model_files():
     if use_local_files:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         local_model_dir = os.path.join(
-            current_dir, "..", "..", "model_files", short_name
+            current_dir, "..", "..", "model_files", model
         )
         local_model_dir = os.path.abspath(local_model_dir)
     else:
-        local_model_dir = f"/app/model_files/{short_name}"
+        local_model_dir = f"/app/model_files/{model}"
 
     model_config = get_model_config()
     if not model_config:

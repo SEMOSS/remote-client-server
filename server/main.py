@@ -19,12 +19,12 @@ from router.generation_route import generation_router
 from router.queue_route import queue_router
 from router.metrics_route import metrics_router
 from router.status_route import status_route
-from router.reclaim_route import reclaim_route
+# from router.reclaim_route import reclaim_route
 from router.chat_completion_route import chat_completion_router
 from model_utils.download import (
     check_and_download_model_files,
 )
-from model_utils.model_config import get_model_type, get_repo_id
+from model_utils.model_config import get_model_config
 
 
 logging.basicConfig(level=logging.INFO)
@@ -46,14 +46,18 @@ async def lifespan(app: FastAPI):
     model_manager = ModelManager.get_instance()
     model_manager.initialize_model()
 
-    model_type = get_model_type()
-    repo_id = get_repo_id()
+    model_config = get_model_config()
+    model_type = model_config.get("type")
+    repo_id = model_config.get("model_repo_id")
+    
     if model_type == "image":
         app.state.gaas = ImageGen(model_name=repo_id)
     elif model_type == "text":
         app.state.gaas = Chat(model_manager=model_manager)
     elif model_type == "ner":
         app.state.gaas = NERGen(model_manager=model_manager)
+    else:
+        logger.error(f"Unsupported model type: {model_type}")
 
     app.state.queue_manager = QueueManager(gaas=app.state.gaas)
     app.state.queue_manager_task = asyncio.create_task(
@@ -88,7 +92,7 @@ app.include_router(health_check_router, prefix="/api")
 app.include_router(generation_router, prefix="/api")
 app.include_router(status_route, prefix="/api")
 app.include_router(queue_router, prefix="/api")
-app.include_router(reclaim_route, prefix="/api")
+# app.include_router(reclaim_route, prefix="/api")
 app.include_router(chat_completion_router, prefix="/api")
 app.include_router(metrics_router)
 
@@ -96,7 +100,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="0.0.0.0", type=str, help="Host IP address")
     parser.add_argument("--port", default=8888, type=int, help="Port number")
-    parser.add_argument("--model", default="pixart", type=str, help="Model name")
+    parser.add_argument("--model", default="gliner-multi-v2-1", type=str, help="Model name")
+    parser.add_argument("--model_repo_id", default="urchade/gliner_multi-v2.1", type=str, help="Hugging Face model id")
+    parser.add_argument("--type", default="ner", type=str, help="Model type")
     parser.add_argument(
         "--local_files", action="store_true", help="Use local model files"
     )

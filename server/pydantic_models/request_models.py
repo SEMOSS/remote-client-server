@@ -41,7 +41,7 @@ class TextJSONRequest(BaseModel):
 
 
 class NERRequest(BaseModel):
-    model: str
+    model: Optional[str] = None
     text: str
     entities: List[str]
     mask_entities: Optional[List[str]] = []

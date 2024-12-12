@@ -4,7 +4,7 @@ import torch
 from transformers import AutoModelForCausalLM, pipeline
 from gliner import GLiNER
 from pathlib import Path
-from model_utils.model_config import get_flash_attention, get_model_config
+from model_utils.model_config import get_model_config
 from gaas.tokenizer.tokenizer import Tokenizer
 from globals.globals import set_server_status
 
@@ -39,20 +39,20 @@ class ModelManager:
             cls._instance = cls()
         return cls._instance
 
-    def _check_flash_attention(self):
-        """Check if flash attention is available and should be used."""
-        use_flash_attention = get_flash_attention()
-        if not use_flash_attention:
-            logger.info("Flash attention is not used for this model.")
-            return False
-        try:
-            import flash_attn  # type: ignore
+    # def _check_flash_attention(self):
+    #     """Check if flash attention is available and should be used."""
+    #     use_flash_attention = get_flash_attention()
+    #     if not use_flash_attention:
+    #         logger.info("Flash attention is not used for this model.")
+    #         return False
+    #     try:
+    #         import flash_attn  # type: ignore
 
-            logger.info("Flash attention is available.")
-            return True
-        except ImportError:
-            logger.warning("Flash attention is not available.")
-            return False
+    #         logger.info("Flash attention is available.")
+    #         return True
+    #     except ImportError:
+    #         logger.warning("Flash attention is not available.")
+    #         return False
 
     def initialize_model(self):
         """Initialize the model, tokenizer, and pipeline if not already initialized."""
@@ -63,17 +63,17 @@ class ModelManager:
         logger.info("Initializing model!")
         try:
             # Checking whether flash attention is available on the container
-            flash_attn_available = self._check_flash_attention()
+            # flash_attn_available = self._check_flash_attention()
             model_kwargs = {
                 "device_map": "cuda",
                 "torch_dtype": "auto",
                 "trust_remote_code": True,
             }
-            if flash_attn_available:
-                model_kwargs["attn_implementation"] = "flash_attention_2"
+            # if flash_attn_available:
+            #     model_kwargs["attn_implementation"] = "flash_attention_2"
 
             model_config = get_model_config()
-            short_name = model_config.get("short_name")
+            model = model_config.get("model")
 
             model_files_local = os.environ.get("LOCAL_FILES") == "True"
 
@@ -81,10 +81,10 @@ class ModelManager:
             if model_files_local:
                 script_dir = Path(__file__).resolve().parent
                 project_root = script_dir.parent.parent.parent
-                model_files_path = project_root / "model_files" / short_name
+                model_files_path = project_root / "model_files" / model
                 model_files_path = str(model_files_path.resolve())
             else:
-                model_files_path = f"/app/model_files/{short_name}"
+                model_files_path = f"/app/model_files/{model}"
 
             logger.info(f"Attempting to load model from path: {model_files_path}")
 
@@ -95,14 +95,14 @@ class ModelManager:
                 )
 
             # Using this to check for required files
-            required_files = model_config.get("required_files")
-            missing_files = [
-                f
-                for f in required_files
-                if not os.path.exists(os.path.join(model_files_path, f))
-            ]
-            if missing_files:
-                raise FileNotFoundError(f"Missing required files: {missing_files}")
+            # required_files = model_config.get("required_files")
+            # missing_files = [
+            #     f
+            #     for f in required_files
+            #     if not os.path.exists(os.path.join(model_files_path, f))
+            # ]
+            # if missing_files:
+            #     raise FileNotFoundError(f"Missing required files: {missing_files}")
 
             # Initializing the model based on model type
             model_type = model_config.get("type")
