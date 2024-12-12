@@ -17,14 +17,15 @@ def get_model_config() -> dict:
     model_repo_id = os.getenv("MODEL_REPO_ID")
     model_type = os.getenv("TYPE")
     return {
-        "model": model,
+        "model": model.lower(),
         "model_repo_id": model_repo_id,
-        "type": model_type,
+        "type": model_type.lower(),
     }
 
 def verify_payload(request: dict):
-    model_type = get_model_config().get("type")
-
+    model_config = get_model_config()
+    model_type = model_config.get("type")
+    
     if model_type == None:
         logger.error("The payload verification failed.")
         return None
