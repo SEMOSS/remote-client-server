@@ -24,7 +24,8 @@ class ImageGen:
         self._load_model()
 
     def _load_model(self):
-        model = get_model_config()
+        model_config = get_model_config()
+        model = model_config.get("model")
         # Used in development mode if you are running outside of a docker container otherwise model files should be loaded in attached volume
         model_files_local = os.environ.get("LOCAL_FILES") == "True"
         if model_files_local:

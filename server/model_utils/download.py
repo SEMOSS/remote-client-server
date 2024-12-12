@@ -283,7 +283,8 @@ def check_and_download_model_files():
     Enhanced version of check_and_download_model_files using git-lfs.
     """
     set_server_status("Checking model files...")
-    model = get_model_config().get("model")
+    model_config = get_model_config()
+    model = model_config.get("model")
     logger.info(f"Checking model files for {model} ...")
 
     # This is only true if you call it during app startup when running outside the container

@@ -60,7 +60,7 @@ class Message(BaseModel):
 
 
 class ChatCompletionRequest(BaseModel):
-    model: str
+    model: Optional[str] = None
     messages: List[Message]
     temperature: Optional[float] = 0.2
     top_p: Optional[float] = 0.2
