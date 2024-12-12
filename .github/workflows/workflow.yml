@@ -39,9 +39,23 @@ jobs:
           export DOCKER_TLS_CERTDIR=""
           ls -lah
           pwd
-          echo ${{ secrets.DOCKER_PASS}} | docker login ${{ vars.DOCKER_PRIVATE }} -u ${{ secrets.DOCKER_USER}} --password-stdin
-          echo ${{ secrets.SEMOSS_DOCKER_PASS}} | docker login ${{ vars.DOCKER_SEMOSS }} -u ${{ secrets.SEMOSS_DOCKER_USER}} --password-stdin
           docker build . -t ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server:$date
+      
+      - name: Docker login for DOCKER_SEMOSS
+        run: |
+          echo ${{ secrets.SEMOSS_DOCKER_PASS}} | docker login ${{ vars.DOCKER_SEMOSS }} -u ${{ secrets.SEMOSS_DOCKER_USER}} --password-stdin
           docker tag ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server:$date ${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server:$date
           docker push ${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server:$date
+      
+      - name: Docker logout for DOCKER_SEMOSS
+        run: |
+          docker logout ${{ vars.DOCKER_SEMOSS }}
+
+      - name: Docker login for DOCKER_PRIVATE
+        run: |
+          echo ${{ secrets.DOCKER_PASS}} | docker login ${{ vars.DOCKER_PRIVATE }} -u ${{ secrets.DOCKER_USER}} --password-stdin
           docker push  ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server:$date
+      
+      - name: Docker logout for DOCKER_PRIVATE
+        run: |
+          docker logout ${{ vars.DOCKER_PRIVATE }}
