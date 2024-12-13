@@ -49,6 +49,7 @@ ENV HOME=/root \
     TRANSFORMERS_CACHE=/app/model_files/.cache \
     HF_HOME=/app/model_files/.cache \
     HUGGINGFACE_HUB_CACHE=/app/model_files/.cache \
+    HF_HUB_ENABLE_HF_TRANSFER=1 \
     UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
@@ -66,7 +67,22 @@ ENV HOME=/root \
     PORT=8888 \
     MODEL=gliner-multi-v2-1
 
-COPY requirements.txt uv.lock pyproject.toml ./
+ENV FLASH_ATTENTION_FORCE_BUILD=1 \
+    TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6+PTX" \
+    MAX_JOBS=4
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+
+# First install torch with uv
+RUN uv pip install packaging torch==2.5.1
+
+# Then install Flash Attention separately with no build isolation
+RUN uv pip install flash-attn==2.5.6 --no-build-isolation
+
+COPY uv.lock pyproject.toml ./
 
 RUN uv pip install -r pyproject.toml
 

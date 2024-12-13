@@ -1,11 +1,10 @@
-import os
 import logging
 import torch
-from transformers import AutoModelForCausalLM, pipeline
+from transformers import AutoModelForCausalLM, AutoModel, pipeline
 from gliner import GLiNER
-from pathlib import Path
 from model_utils.model_config import get_model_config
 from gaas.tokenizer.tokenizer import Tokenizer
+from gaas.model_manager.model_files_manager import ModelFilesManager
 from globals.globals import set_server_status
 
 logger = logging.getLogger(__name__)
@@ -39,20 +38,62 @@ class ModelManager:
             cls._instance = cls()
         return cls._instance
 
-    # def _check_flash_attention(self):
-    #     """Check if flash attention is available and should be used."""
-    #     use_flash_attention = get_flash_attention()
-    #     if not use_flash_attention:
-    #         logger.info("Flash attention is not used for this model.")
-    #         return False
-    #     try:
-    #         import flash_attn  # type: ignore
+    def _check_flash_attention(self):
+        """Check if flash attention is available and should be used."""
+        try:
+            import flash_attn  # type: ignore
 
-    #         logger.info("Flash attention is available.")
-    #         return True
-    #     except ImportError:
-    #         logger.warning("Flash attention is not available.")
-    #         return False
+            logger.info("Flash attention is available.")
+            return True
+        except ImportError:
+            logger.warning("Flash attention is not available.")
+            return False
+
+    def initialize_model_with_flash_attention(
+        self, model_class, model_files_path: str, **model_kwargs
+    ):
+        """Initialize a model with proper Flash Attention settings based on analysis"""
+        model_files_manager = ModelFilesManager()
+        model_uses_flash_attn = model_files_manager.use_flash_attention
+        try:
+            if model_uses_flash_attn:
+                # Check if flash_attn is available on container
+                flash_attn_available = self._check_flash_attention()
+
+                if flash_attn_available:
+                    logger.info("Attempting to load model with Flash Attention 2")
+                    try:
+                        # Trying Flash Attention 2 first
+                        model_kwargs["attn_implementation"] = "flash_attention_2"
+                        return model_class.from_pretrained(
+                            model_files_path, **model_kwargs
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to load with Flash Attention 2: {e}")
+                        try:
+                            # Fall back to Flash Attention 1
+                            logger.info(
+                                "Attempting to load model with Flash Attention 1"
+                            )
+                            model_kwargs["attn_implementation"] = "flash_attention"
+                            return model_class.from_pretrained(
+                                model_files_path, **model_kwargs
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to load with Flash Attention: {e}")
+                            logger.info("Falling back to standard attention")
+                else:
+                    logger.warning(
+                        "Model supports Flash Attention but package not installed"
+                    )
+
+            # Remove any flash attention config if we get here
+            model_kwargs.pop("attn_implementation", None)
+            return model_class.from_pretrained(model_files_path, **model_kwargs)
+
+        except Exception as e:
+            logger.error(f"Failed to initialize model: {e}")
+            raise
 
     def initialize_model(self):
         """Initialize the model, tokenizer, and pipeline if not already initialized."""
@@ -62,58 +103,56 @@ class ModelManager:
 
         logger.info("Initializing model!")
         try:
-            # Checking whether flash attention is available on the container
-            # flash_attn_available = self._check_flash_attention()
+            model_files_manager = ModelFilesManager()
+            model_files_path = model_files_manager.model_files_path
             model_kwargs = {
                 "device_map": "cuda",
-                "torch_dtype": "auto",
+                "torch_dtype": torch.float16,
                 "trust_remote_code": True,
             }
-            # if flash_attn_available:
-            #     model_kwargs["attn_implementation"] = "flash_attention_2"
 
             model_config = get_model_config()
-            model = model_config.get("model")
-
-            model_files_local = os.environ.get("LOCAL_FILES") == "True"
-
-            # Get model path
-            if model_files_local:
-                script_dir = Path(__file__).resolve().parent
-                project_root = script_dir.parent.parent.parent
-                model_files_path = project_root / "model_files" / model
-                model_files_path = str(model_files_path.resolve())
-            else:
-                model_files_path = f"/app/model_files/{model}"
-
-            logger.info(f"Attempting to load model from path: {model_files_path}")
-
-            # Validate model directory and files
-            if not os.path.exists(model_files_path):
-                raise FileNotFoundError(
-                    f"Model directory not found: {model_files_path}"
-                )
-
-            # Using this to check for required files
-            # required_files = model_config.get("required_files")
-            # missing_files = [
-            #     f
-            #     for f in required_files
-            #     if not os.path.exists(os.path.join(model_files_path, f))
-            # ]
-            # if missing_files:
-            #     raise FileNotFoundError(f"Missing required files: {missing_files}")
-
             # Initializing the model based on model type
             model_type = model_config.get("type")
             if model_type == "text":
                 self.initialize_text_model(model_files_path, **model_kwargs)
             elif model_type == "ner":
                 self.initialize_ner_model(model_files_path, **model_kwargs)
+            elif model_type == "embed":
+                self.initialize_embedding_model(model_files_path, **model_kwargs)
 
         except Exception as e:
             logger.error(f"Failed to initialize model: {e}")
             set_server_status("Model initialization FAILED")
+            raise
+
+    def initialize_embedding_model(self, model_files_path, **model_kwargs):
+        """Initialize an embedding model."""
+        try:
+            logger.info(f"Initializing embedding model on device: {self._device}")
+
+            if "device_map" in model_kwargs:
+                del model_kwargs["device_map"]
+
+            self._model = self.initialize_model_with_flash_attention(
+                AutoModel,
+                model_files_path,
+                **model_kwargs,
+            )
+
+            self._model = self._model.to(self._device)
+            self._model.eval()
+            self._tokenizer = Tokenizer().tokenizer
+
+            logger.info(
+                f"Model device after initialization: {next(self._model.parameters()).device}"
+            )
+
+            self._initialized = True
+            logger.info("Embedding Model loaded successfully.")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize embedding model: {e}")
             raise
 
     def initialize_ner_model(self, model_files_path, **model_kwargs):
@@ -132,7 +171,8 @@ class ModelManager:
 
     def initialize_text_model(self, model_files_path, **model_kwargs):
         try:
-            self._model = AutoModelForCausalLM.from_pretrained(
+            self._model = self.initialize_model_with_flash_attention(
+                AutoModelForCausalLM,
                 model_files_path,
                 **model_kwargs,
             )

@@ -11,3 +11,9 @@ class NERResponse(BaseModel):
     mask_values: Dict[str, Any] = Field(..., description="Masked values")
     input: str = Field(..., description="Input text")
     entities: List[str] = Field(..., description="List of entities")
+
+
+class EmbeddingResponse(BaseModel):
+    object: str = "list"
+    data: List[Dict]
+    usage: Dict[str, int]

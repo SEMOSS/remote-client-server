@@ -7,6 +7,7 @@ import time
 from typing import Set
 from model_utils.model_config import get_model_config
 from globals.globals import set_server_status
+from huggingface_hub import snapshot_download
 
 logger = logging.getLogger(__name__)
 
@@ -278,6 +279,15 @@ def download_model_files(
     return False
 
 
+def download_model_files_hf(model_repo_id: str, local_model_dir: str):
+    try:
+        snapshot_download(repo_id=model_repo_id, local_dir=local_model_dir)
+        return True
+    except Exception as e:
+        logger.error(f"Error during download: {str(e)}")
+        return False
+
+
 def check_and_download_model_files():
     """
     Enhanced version of check_and_download_model_files using git-lfs.
@@ -293,9 +303,7 @@ def check_and_download_model_files():
     # Check if you are running outside the container.. model files will be in a diff location
     if use_local_files:
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        local_model_dir = os.path.join(
-            current_dir, "..", "..", "model_files", model
-        )
+        local_model_dir = os.path.join(current_dir, "..", "..", "model_files", model)
         local_model_dir = os.path.abspath(local_model_dir)
     else:
         local_model_dir = f"/app/model_files/{model}"
@@ -318,4 +326,5 @@ def check_and_download_model_files():
         else:
             logger.info("Existing files failed verification, re-downloading...")
 
-    return download_model_files(model_repo_id, local_model_dir)
+    # return download_model_files(model_repo_id, local_model_dir)
+    return download_model_files_hf(model_repo_id, local_model_dir)

@@ -1,3 +1,7 @@
+--find-links https://download.pytorch.org/whl/cu124
+torch
+torchvision
+torchaudio
 accelerate
 pydantic
 pytest
@@ -18,9 +22,7 @@ paddlepaddle-gpu
 pytesseract
 prometheus_client
 timm
-torch
-torchvision
-torchaudio
 guidance
 jsonschema
 einops
+packaging

@@ -13,12 +13,14 @@ from queue_manager.queue_manager import QueueManager
 from gaas.image_gen.image_gen import ImageGen
 from gaas.text_gen.chat import Chat
 from gaas.ner_gen.ner_gen import NERGen
+from gaas.embed_gen.embed_gen import EmbedGen
 from globals import app_instance
 from router.health_check_route import health_check_router
 from router.generation_route import generation_router
 from router.queue_route import queue_router
 from router.metrics_route import metrics_router
 from router.status_route import status_route
+
 # from router.reclaim_route import reclaim_route
 from router.chat_completion_route import chat_completion_router
 from model_utils.download import (
@@ -49,13 +51,15 @@ async def lifespan(app: FastAPI):
     model_config = get_model_config()
     model_type = model_config.get("type")
     repo_id = model_config.get("model_repo_id")
-    
+
     if model_type == "image":
         app.state.gaas = ImageGen(model_name=repo_id)
     elif model_type == "text":
         app.state.gaas = Chat(model_manager=model_manager)
     elif model_type == "ner":
         app.state.gaas = NERGen(model_manager=model_manager)
+    elif model_type == "embed":
+        app.state.gaas = EmbedGen(model_manager=model_manager)
     else:
         logger.error(f"Unsupported model type: {model_type}")
 
@@ -100,9 +104,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="0.0.0.0", type=str, help="Host IP address")
     parser.add_argument("--port", default=8888, type=int, help="Port number")
-    parser.add_argument("--model", default="gliner-multi-v2-1", type=str, help="Model name")
-    parser.add_argument("--model_repo_id", default="urchade/gliner_multi-v2.1", type=str, help="Hugging Face model id")
-    parser.add_argument("--type", default="ner", type=str, help="Model type")
+    parser.add_argument("--model", type=str, help="Model name")
+    parser.add_argument("--model_repo_id", type=str, help="Hugging Face model id")
+    parser.add_argument("--model_type", type=str, help="Model type")
     parser.add_argument(
         "--local_files", action="store_true", help="Use local model files"
     )
@@ -111,6 +115,10 @@ if __name__ == "__main__":
 
     if args.model:
         os.environ["MODEL"] = args.model
+    if args.model_repo_id:
+        os.environ["MODEL_REPO_ID"] = args.model_repo_id
+    if args.model_type:
+        os.environ["MODEL_TYPE"] = args.model_type
 
     if args.local_files:
         os.environ["LOCAL_FILES"] = "True"
