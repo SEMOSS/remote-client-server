@@ -8,9 +8,9 @@ def download_model_files():
     Use the `snapshot_download` function from the `huggingface_hub` library to download the model files locally.
     """
     # change this
-    model_repo_id = "microsoft/Phi-3-mini-128k-instruct"
+    model_repo_id = "microsoft/Florence-2-large"
     # change this
-    short_name = "phi-3-mini-128k-instruct"
+    short_name = "microsoft-florence-2-large"
 
     # don't change this
     local_model_dir = f"./model_files/{short_name}"

@@ -29,5 +29,6 @@ dependencies = [
     "uvicorn>=0.32.0",
     "guidance>=0.1.16",
     "jsonschema>=4.23.0",
+    "einops>=0.8.0",
 ]
 

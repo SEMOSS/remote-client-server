@@ -25,7 +25,7 @@ class Tokenizer:
         else:
             model_files_path = f"/app/model_files/{model}"
 
-        return AutoTokenizer.from_pretrained(model_files_path, use_fast=False)
+        return AutoTokenizer.from_pretrained(model_files_path, use_fast=False, trust_remote_code=True)
 
     def count_tokens(self, input: str) -> int:
         """Use the model tokenizer to get the number of tokens"""

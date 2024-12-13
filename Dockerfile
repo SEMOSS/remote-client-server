@@ -66,10 +66,9 @@ ENV HOME=/root \
     PORT=8888 \
     MODEL=gliner-multi-v2-1
 
-COPY requirements.txt uv.lock ./
+COPY requirements.txt uv.lock pyproject.toml ./
 
-RUN uv pip install --no-cache \
-    $([ -f uv.lock ] && echo "--requirement uv.lock" || echo "--requirement requirements.txt")
+RUN uv pip install -r pyproject.toml
 
 COPY server server
 
