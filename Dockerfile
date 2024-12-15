@@ -67,8 +67,9 @@ ENV HOME=/root \
     PORT=8888 \
     MODEL=gliner-multi-v2-1
 
+# This needs to change if we change the GPU architecture
 ENV FLASH_ATTENTION_FORCE_BUILD=1 \
-    TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6+PTX" \
+    TORCH_CUDA_ARCH_LIST="7.5" \
     MAX_JOBS=4
 
 # Install build dependencies
