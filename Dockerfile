@@ -18,9 +18,9 @@ RUN apt-get update && apt-get install -y \
     git \
     build-essential \
     curl \
-    && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash \
-    && apt-get install -y git-lfs \
-    && git lfs install --system \
+    # && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash \
+    # && apt-get install -y git-lfs \
+    # && git lfs install --system \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /root/.config/git
 
@@ -30,7 +30,7 @@ RUN git config --system credential.helper store \
     && git config --system http.lowSpeedLimit 1000 \
     && git config --system http.lowSpeedTime 600 \
     && git config --system protocol.version 2 \
-    && git config --system lfs.concurrenttransfers 4 \
+    # && git config --system lfs.concurrenttransfers 4 \
     && git config --system core.compression 0 \
     && git config --system http.maxRequestBuffer 100M
 
@@ -42,9 +42,9 @@ RUN mkdir -p /app/model_files/.cache \
     && chmod -R 777 /root/.cache
 
 ENV HOME=/root \
-    GIT_LFS_SKIP_SMUDGE=0 \
+    # GIT_LFS_SKIP_SMUDGE=0 \
     GIT_TERMINAL_PROMPT=0 \
-    GIT_LFS_PROGRESS=true \
+    # GIT_LFS_PROGRESS=true \
     GIT_TRACE=1 \
     TRANSFORMERS_CACHE=/app/model_files/.cache \
     HF_HOME=/app/model_files/.cache \
@@ -64,8 +64,8 @@ ENV HOME=/root \
     NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility \
     HOST=0.0.0.0 \
-    PORT=8888 \
-    MODEL=gliner-multi-v2-1
+    PORT=8888
+    # MODEL=gliner-multi-v2-1
 
 # This needs to change if we change the GPU architecture
 ENV FLASH_ATTENTION_FORCE_BUILD=1 \
@@ -78,10 +78,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # First install torch with uv
-RUN uv pip install packaging torch==2.5.1
+# RUN uv pip install packaging torch==2.5.1
 
 # Then install Flash Attention separately with no build isolation
-RUN uv pip install flash-attn==2.5.6 --no-build-isolation
+# RUN uv pip install flash-attn==2.5.6 --no-build-isolation
 
 COPY uv.lock pyproject.toml ./
 
@@ -89,11 +89,11 @@ RUN uv pip install -r pyproject.toml
 
 COPY server server
 
-RUN git lfs install --system --skip-repo \
-    && chown -R root:root /app/model_files \
-    && chmod -R 777 /app/model_files \
-    && chown -R root:root /root/.cache \
-    && chmod -R 777 /root/.cache
+# RUN git lfs install --system --skip-repo \
+# RUN chown -R root:root /app/model_files \
+#     && chmod -R 777 /app/model_files \
+#     && chown -R root:root /root/.cache \
+#     && chmod -R 777 /root/.cache
 
 EXPOSE ${PORT}
 
