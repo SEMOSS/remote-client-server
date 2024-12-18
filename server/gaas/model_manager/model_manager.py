@@ -53,14 +53,18 @@ class ModelManager:
         self, model_class, model_files_path: str, **model_kwargs
     ):
         """Initialize a model with proper Flash Attention settings based on analysis"""
-        model_files_manager = ModelFilesManager()
-        model_uses_flash_attn = model_files_manager.use_flash_attention
-        try:
-            if model_uses_flash_attn:
-                # Check if flash_attn is available on container
-                flash_attn_available = self._check_flash_attention()
+        # Check if flash_attn is available on container
+        flash_attn_available = self._check_flash_attention()
 
-                if flash_attn_available:
+        try:
+            if flash_attn_available:
+                # Check if model uses flash attention
+                model_files_manager = ModelFilesManager()
+                model_uses_flash_attn = (
+                    model_files_manager.analyze_flash_attention_compatibility()
+                )
+
+                if model_uses_flash_attn:
                     logger.info("Attempting to load model with Flash Attention 2")
                     try:
                         # Trying Flash Attention 2 first
@@ -84,7 +88,7 @@ class ModelManager:
                             logger.info("Falling back to standard attention")
                 else:
                     logger.warning(
-                        "Model supports Flash Attention but package not installed"
+                        "Flash attention available but model does not use it.. Loading model with standard attention"
                     )
 
             # Remove any flash attention config if we get here
@@ -104,7 +108,7 @@ class ModelManager:
         logger.info("Initializing model!")
         try:
             model_files_manager = ModelFilesManager()
-            model_files_path = model_files_manager.model_files_path
+            model_files_path = model_files_manager.get_model_files_path()
             model_kwargs = {
                 "device_map": "cuda",
                 "torch_dtype": torch.float16,
@@ -115,11 +119,11 @@ class ModelManager:
             # Initializing the model based on model type
             model_type = model_config.get("type")
             if model_type == "text":
-                self.initialize_text_model(model_files_path, **model_kwargs)
+                return self.initialize_text_model(model_files_path, **model_kwargs)
             elif model_type == "ner":
-                self.initialize_ner_model(model_files_path, **model_kwargs)
+                return self.initialize_ner_model(model_files_path, **model_kwargs)
             elif model_type == "embed":
-                self.initialize_embedding_model(model_files_path, **model_kwargs)
+                return self.initialize_embedding_model(model_files_path, **model_kwargs)
 
         except Exception as e:
             logger.error(f"Failed to initialize model: {e}")

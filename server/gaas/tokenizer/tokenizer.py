@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class Tokenizer:
     def __init__(self, max_tokens: int = 2048, **kwargs):
-        self.model_files_path = ModelFilesManager().model_files_path
+        self.model_files_path = ModelFilesManager().get_model_files_path()
         self.tokenizer = self._get_tokenizer()
         self.max_tokens = max_tokens
 

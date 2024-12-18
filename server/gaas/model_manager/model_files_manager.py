@@ -13,11 +13,11 @@ class ModelFilesManager:
         self.model = self.model_config.get("model")
         self.model_type = self.model_config.get("type")
         self.use_local_files = os.environ.get("LOCAL_FILES") == "True"
-        self.model_files_path = self._get_model_files_path()
-        self.config_json_path = self._get_config_json_path()
-        self.use_flash_attention = self.analyze_flash_attention_compatibility()
+        # self.model_files_path = self._get_model_files_path()
+        # self.config_json_path = self._get_config_json_path()
+        # self.use_flash_attention = self.analyze_flash_attention_compatibility()
 
-    def _get_model_files_path(self):
+    def get_model_files_path(self):
         """Get the path to the current model's model files and verify its existence."""
         try:
             if self.use_local_files:
@@ -43,7 +43,7 @@ class ModelFilesManager:
             logger.error(f"Failed to get model files path: {str(e)}")
             raise FileNotFoundError(f"Could not access model directory: {str(e)}")
 
-    def _get_config_json_path(self):
+    def get_config_json_path(self):
         """Get the path to the current model's config.json file."""
         if self.model_type == "ner":
             file_name = "gliner_config.json"

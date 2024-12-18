@@ -47,7 +47,14 @@ async def lifespan(app: FastAPI):
 
     # A singleton class representing the single model loaded into memory
     model_manager = ModelManager.get_instance()
-    model_manager.initialize_model()
+    initialized = model_manager.initialize_model()
+    if not initialized:
+        logger.error("Failed to initialize model")
+        # sys.exit(1)
+        yield
+        return
+    else:
+        logger.info("Model initialized successfully")
 
     model_config = get_model_config()
     model_type = model_config.get("type")
