@@ -30,9 +30,15 @@ class Role(str, Enum):
     ASSISTANT = "assistant"
 
 
+class ContentItem(BaseModel):
+    type: str
+    text: Optional[str] = None
+    image_url: Optional[Dict[str, str]] = None
+
+
 class Message(BaseModel):
-    role: Role
-    content: str
+    role: str
+    content: Union[str, List[ContentItem]]
 
 
 class ChatCompletionRequest(BaseModel):
@@ -43,6 +49,7 @@ class ChatCompletionRequest(BaseModel):
     n: Optional[int] = 1
     stream: Optional[bool] = False
     max_tokens: Optional[int] = None
+    max_new_tokens: Optional[int] = None
     presence_penalty: Optional[float] = 0
     frequency_penalty: Optional[float] = 0
     user: Optional[str] = None

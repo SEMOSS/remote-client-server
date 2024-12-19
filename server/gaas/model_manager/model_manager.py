@@ -1,6 +1,12 @@
 import logging
 import torch
-from transformers import AutoModelForCausalLM, AutoModel, pipeline
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModel,
+    AutoProcessor,
+    AutoImageProcessor,
+    pipeline,
+)
 from gliner import GLiNER
 from model_utils.model_config import get_model_config
 from gaas.tokenizer.tokenizer import Tokenizer
@@ -124,6 +130,8 @@ class ModelManager:
                 return self.initialize_ner_model(model_files_path, **model_kwargs)
             elif model_type == "embed":
                 return self.initialize_embedding_model(model_files_path, **model_kwargs)
+            elif model_type == "vision":
+                return self.initialize_vision_model(model_files_path, **model_kwargs)
 
         except Exception as e:
             logger.error(f"Failed to initialize model: {e}")
@@ -193,6 +201,36 @@ class ModelManager:
             logger.error(f"Failed to initialize text model: {e}")
             raise
 
+    def initialize_vision_model(self, model_files_path, **model_kwargs):
+        """Initialize a vision model."""
+        try:
+            logger.info(f"Initializing vision model on device: {self._device}")
+
+            # Load model
+            self._model = self.initialize_model_with_flash_attention(
+                AutoModelForCausalLM, model_files_path, **model_kwargs
+            )
+
+            # Load processor/feature extractor
+            try:
+                self._processor = AutoProcessor.from_pretrained(
+                    model_files_path, trust_remote_code=True
+                )
+            except Exception:
+                # Fallback to image processor if processor not available
+                self._processor = AutoImageProcessor.from_pretrained(
+                    model_files_path, trust_remote_code=True
+                )
+
+            self._tokenizer = Tokenizer().tokenizer
+
+            self._initialized = True
+            logger.info("Vision Model loaded successfully.")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize vision model: {e}")
+            raise
+
     @property
     def model(self):
         return self._model
@@ -208,3 +246,7 @@ class ModelManager:
     @property
     def device(self):
         return self._device
+
+    @property
+    def processor(self):
+        return self._processor

@@ -6,6 +6,7 @@ import uuid
 import logging
 import time
 from pydantic_models.request_models import ChatCompletionRequest
+from model_utils.model_config import get_model_config
 from pprint import pprint
 
 logger = logging.getLogger(__name__)
@@ -24,12 +25,15 @@ async def chat_completions(request: Request):
         logger.error(f"Error parsing request: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Invalid request format: {str(e)}")
 
-    pprint(request_model)
+    # pprint(request_model)
     app = request.app
     queue_manager = app.state.queue_manager
     job_id = str(uuid.uuid4())
 
-    if request_model.stream:
+    model_type = get_model_config().get("type")
+
+    # Don't stream vision models
+    if request_model.stream and model_type == "text":
 
         async def event_stream():
             try:

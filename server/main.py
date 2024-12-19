@@ -14,6 +14,7 @@ from gaas.image_gen.image_gen import ImageGen
 from gaas.text_gen.chat import Chat
 from gaas.ner_gen.ner_gen import NERGen
 from gaas.embed_gen.embed_gen import EmbedGen
+from gaas.vision_gen.vision_gen import VisionGen
 from globals import app_instance
 from router.health_check_route import health_check_router
 from router.generation_route import generation_router
@@ -21,6 +22,7 @@ from router.queue_route import queue_router
 from router.metrics_route import metrics_router
 from router.status_route import status_route
 from router.embeddings_route import embeddings_router
+
 
 # from router.reclaim_route import reclaim_route
 from router.chat_completion_route import chat_completion_router
@@ -68,6 +70,8 @@ async def lifespan(app: FastAPI):
         app.state.gaas = NERGen(model_manager=model_manager)
     elif model_type == "embed":
         app.state.gaas = EmbedGen(model_manager=model_manager)
+    elif model_type == "vision":
+        app.state.gaas = VisionGen(model_manager=model_manager)
     else:
         logger.error(f"Unsupported model type: {model_type}")
 
