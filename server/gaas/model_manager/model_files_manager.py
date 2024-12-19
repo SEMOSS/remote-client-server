@@ -13,9 +13,6 @@ class ModelFilesManager:
         self.model = self.model_config.get("model")
         self.model_type = self.model_config.get("type")
         self.use_local_files = os.environ.get("LOCAL_FILES") == "True"
-        # self.model_files_path = self._get_model_files_path()
-        # self.config_json_path = self._get_config_json_path()
-        # self.use_flash_attention = self.analyze_flash_attention_compatibility()
 
     def get_model_files_path(self):
         """Get the path to the current model's model files and verify its existence."""
@@ -49,8 +46,8 @@ class ModelFilesManager:
             file_name = "gliner_config.json"
         else:
             file_name = "config.json"
-
-        config_path = Path(self.model_files_path) / file_name
+        model_files_path = self.get_model_files_path()
+        config_path = Path(model_files_path) / file_name
         if not config_path.exists():
             logger.error(f"Config file not found: {config_path}")
             return None
@@ -58,11 +55,12 @@ class ModelFilesManager:
 
     def analyze_flash_attention_compatibility(self) -> bool:
         """Analyze model config for Flash Attention compatibility."""
-        if not self.config_json_path:
+        config_json_path = self.get_config_json_path()
+        if not config_json_path:
             logger.info("Config file not found.. Skipping Flash Attention analysis")
             return False
 
-        with open(self.config_json_path) as f:
+        with open(config_json_path) as f:
             config = json.load(f)
 
         # 1. Explicit Flash Attention flags

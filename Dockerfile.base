@@ -1,0 +1,59 @@
+FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+
+LABEL maintainer="semoss@semoss.org"
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV HOME=/root
+
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    python3-dev \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    git \
+    build-essential \
+    curl \
+    # && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash \
+    # && apt-get install -y git-lfs \
+    # && git lfs install --system \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /root/.config/git \
+    ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables for Flash Attention
+ENV FLASH_ATTENTION_FORCE_BUILD=1 \
+    TORCH_CUDA_ARCH_LIST="7.5" \
+    MAX_JOBS=4
+
+ENV HOME=/root \
+    GIT_TERMINAL_PROMPT=0 \
+    GIT_TRACE=1 \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PYTHON=python3.10 \
+    UV_NO_BINARY=:all: \
+    UV_SYSTEM_PYTHON=1 \
+    UV_WHEELTAG=py310 \
+    PIP_NO_CACHE_DIR=false \
+    PIP_CACHE_DIR=/root/.cache/pip \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+
+RUN uv pip install packaging torch==2.5.1
+RUN uv pip install flash-attn==2.5.6 --no-build-isolation
+
+# Pre-install common dependencies
+RUN uv pip install \
+    transformers==4.46.2 \
+    accelerate==1.1.0 \
+    bitsandbytes \
+    peft \
+    safetensors \
+    hf-transfer==0.1.8 \
+    diffusers==0.31.0
+
+RUN rm -rf /root/.cache/pip

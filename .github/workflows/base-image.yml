@@ -1,10 +1,12 @@
-name: Application Image Build
+name: Base Image Build
 on:
   push:
-    paths-ignore:
+    paths:
       - 'Dockerfile.base'
     branches:
       - master
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly rebuild
   workflow_dispatch:
 
 jobs:
@@ -31,21 +33,19 @@ jobs:
       - name: Set date environment variable
         run: echo "date=$(date '+%Y-%m-%d-%H%M')" >> $GITHUB_ENV
 
-      - name: Docker login for base image pull
-        run: |
-          echo ${{ secrets.SEMOSS_DOCKER_PASS}} | docker login ${{ vars.DOCKER_SEMOSS }} -u ${{ secrets.SEMOSS_DOCKER_USER}} --password-stdin
-          docker pull ${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server-base:latest
-
-      - name: Docker Build Application
+      - name: Docker Build Base Image
         run: |
           export DOCKER_TLS_CERTDIR=""
-          docker build . -t ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server:$date
+          docker build -f Dockerfile.base . -t ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server-base:$date
+          docker tag ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server-base:$date ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server-base:latest
       
       - name: Docker login for DOCKER_SEMOSS
         run: |
           echo ${{ secrets.SEMOSS_DOCKER_PASS}} | docker login ${{ vars.DOCKER_SEMOSS }} -u ${{ secrets.SEMOSS_DOCKER_USER}} --password-stdin
-          docker tag ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server:$date ${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server:$date
-          docker push ${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server:$date
+          docker tag ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server-base:$date ${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server-base:$date
+          docker tag ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server-base:$date ${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server-base:latest
+          docker push ${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server-base:$date
+          docker push ${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server-base:latest
       
       - name: Docker logout for DOCKER_SEMOSS
         run: docker logout ${{ vars.DOCKER_SEMOSS }}
@@ -53,7 +53,8 @@ jobs:
       - name: Docker login for DOCKER_PRIVATE
         run: |
           echo ${{ secrets.DOCKER_PASS}} | docker login ${{ vars.DOCKER_PRIVATE }} -u ${{ secrets.DOCKER_USER}} --password-stdin
-          docker push ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server:$date
+          docker push ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server-base:$date
+          docker push ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server-base:latest
       
       - name: Docker logout for DOCKER_PRIVATE
         run: docker logout ${{ vars.DOCKER_PRIVATE }}
