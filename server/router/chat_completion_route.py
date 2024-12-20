@@ -32,44 +32,65 @@ async def chat_completions(request: Request):
 
     model_type = get_model_config().get("type")
 
-    # Don't stream vision models
-    if request_model.stream and model_type == "text":
+    if request_model.stream and model_type == "vision":
 
-        async def event_stream():
+        async def vision_event_stream():
             try:
                 await queue_manager.add_job(job_id, request_model)
-                logger.info(f"Added job {job_id} to queue")
+                logger.info(f"Added vision job {job_id} to queue")
 
                 while True:
                     status = await queue_manager.get_job_status(job_id)
-                    logger.info(f"Job {job_id} status: {status}")
+                    logger.info(f"Vision job {job_id} status: {status}")
 
                     if status == "queued":
                         queue_position = await queue_manager.get_job_position(job_id)
-                        logger.info(f"Job {job_id} queue position: {queue_position}")
+                        logger.info(
+                            f"Vision job {job_id} queue position: {queue_position}"
+                        )
                         await asyncio.sleep(1)
                         continue
 
                     elif status == "complete":
-                        chunks = await queue_manager.get_job_result(job_id)
-                        logger.info(f"Job {job_id} completed with {len(chunks)} chunks")
+                        result = await queue_manager.get_job_result(job_id)
+                        logger.info(f"Vision job {job_id} completed")
 
-                        if not isinstance(chunks, list):
-                            logger.error(f"Expected list of chunks, got {type(chunks)}")
-                            yield f"data: {json.dumps({'error': 'Invalid response format'})}\n\n"
-                            yield "data: [DONE]\n\n"
-                            break
+                        content_chunk = {
+                            "id": f"chatcmpl-{uuid.uuid4()}",
+                            "object": "chat.completion.chunk",
+                            "created": int(time.time()),
+                            "model": request_model.model,
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "delta": {
+                                        "role": "assistant",
+                                        "content": result["choices"][0]["message"][
+                                            "content"
+                                        ],
+                                    },
+                                    "finish_reason": None,
+                                }
+                            ],
+                        }
+                        yield f"data: {json.dumps(content_chunk)}\n\n"
 
-                        # Send all chunks
-                        for chunk in chunks:
-                            yield f"data: {json.dumps(chunk)}\n\n"
+                        finish_chunk = {
+                            "id": f"chatcmpl-{uuid.uuid4()}",
+                            "object": "chat.completion.chunk",
+                            "created": int(time.time()),
+                            "model": request_model.model,
+                            "choices": [
+                                {"index": 0, "delta": {}, "finish_reason": "stop"}
+                            ],
+                        }
+                        yield f"data: {json.dumps(finish_chunk)}\n\n"
 
-                        # Send final [DONE] message
                         yield "data: [DONE]\n\n"
                         break
 
                     elif status in ["error", "cancelled", "timeout"]:
-                        logger.error(f"Job {job_id} ended with status {status}")
+                        logger.error(f"Vision job {job_id} ended with status {status}")
                         yield f"data: {json.dumps({'error': f'Job {status}'})}\n\n"
                         yield "data: [DONE]\n\n"
                         break
@@ -77,12 +98,73 @@ async def chat_completions(request: Request):
                     await asyncio.sleep(1)
 
             except Exception as e:
-                logger.error(f"Error in event stream for job {job_id}: {str(e)}")
+                logger.error(f"Error in vision event stream for job {job_id}: {str(e)}")
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
                 yield "data: [DONE]\n\n"
 
         return StreamingResponse(
-            event_stream(),
+            vision_event_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Content-Type": "text/event-stream",
+            },
+        )
+
+    # Streaming for text models
+    elif request_model.stream and model_type == "text":
+
+        async def text_event_stream():
+            try:
+                await queue_manager.add_job(job_id, request_model)
+                logger.info(f"Added text job {job_id} to queue")
+
+                while True:
+                    status = await queue_manager.get_job_status(job_id)
+                    logger.info(f"Text job {job_id} status: {status}")
+
+                    if status == "queued":
+                        queue_position = await queue_manager.get_job_position(job_id)
+                        logger.info(
+                            f"Text job {job_id} queue position: {queue_position}"
+                        )
+                        await asyncio.sleep(1)
+                        continue
+
+                    elif status == "complete":
+                        chunks = await queue_manager.get_job_result(job_id)
+                        logger.info(
+                            f"Text job {job_id} completed with {len(chunks)} chunks"
+                        )
+
+                        if not isinstance(chunks, list):
+                            logger.error(f"Expected list of chunks, got {type(chunks)}")
+                            yield f"data: {json.dumps({'error': 'Invalid response format'})}\n\n"
+                            yield "data: [DONE]\n\n"
+                            break
+
+                        for chunk in chunks:
+                            yield f"data: {json.dumps(chunk)}\n\n"
+
+                        yield "data: [DONE]\n\n"
+                        break
+
+                    elif status in ["error", "cancelled", "timeout"]:
+                        logger.error(f"Text job {job_id} ended with status {status}")
+                        yield f"data: {json.dumps({'error': f'Job {status}'})}\n\n"
+                        yield "data: [DONE]\n\n"
+                        break
+
+                    await asyncio.sleep(1)
+
+            except Exception as e:
+                logger.error(f"Error in text event stream for job {job_id}: {str(e)}")
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                yield "data: [DONE]\n\n"
+
+        return StreamingResponse(
+            text_event_stream(),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",

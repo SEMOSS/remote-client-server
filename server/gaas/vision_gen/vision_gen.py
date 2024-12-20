@@ -69,7 +69,6 @@ class VisionGen:
         float16_keys = {"pixel_values", "image_embeds", "image_features"}
         long_keys = {"input_ids", "attention_mask", "token_type_ids", "position_ids"}
 
-        # Move tensors to device with appropriate dtype
         processed_inputs = {}
         for k, v in inputs.items():
             if isinstance(v, torch.Tensor):
@@ -152,6 +151,16 @@ class VisionGen:
             logger.error(f"Error during vision generation: {str(e)}", exc_info=True)
             raise
 
-    async def generate_stream(self, request: ChatCompletionRequest):
-        """Stream generation results."""
-        pass
+    async def generate_stream(self, request: ChatCompletionRequest) -> Dict:
+        """Handle streaming generation for vision models.
+        For vision models, we generate the full response first and then format it as a stream.
+        """
+        try:
+            response = self.generate(request)
+            return response
+
+        except Exception as e:
+            logger.error(
+                f"Error during vision generation streaming: {str(e)}", exc_info=True
+            )
+            raise
