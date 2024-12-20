@@ -2,6 +2,7 @@ import logging
 import torch
 from typing import List, Dict, Any
 from PIL import Image
+import requests
 import base64
 import io
 import time
@@ -83,6 +84,17 @@ class VisionGen:
 
         return processed_inputs
 
+    def url_to_base64(self, image_url: str):
+        try:
+            response = requests.get(image_url)
+            response.raise_for_status()
+            base64_string = base64.b64encode(response.content).decode("utf-8")
+            return base64_string
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching image: {e}")
+            return None
+
     def generate(self, request: ChatCompletionRequest) -> Dict:
         """Generate vision model outputs."""
         try:
@@ -100,7 +112,7 @@ class VisionGen:
                         if image_url.startswith("data:image"):
                             image_data = image_url.split(",")[1]
                         else:
-                            image_data = image_url
+                            image_data = self.url_to_base64(image_url)
 
                         if not self._validate_base64_image(image_data):
                             raise ValueError("Invalid image data provided")
