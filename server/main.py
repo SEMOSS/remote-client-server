@@ -14,6 +14,7 @@ from gaas.image_gen.image_gen import ImageGen
 from gaas.text_gen.chat import Chat
 from gaas.ner_gen.ner_gen import NERGen
 from gaas.embed_gen.embed_gen import EmbedGen
+from gaas.embed_gen.vision_embed_gen import VisionEmbedGen
 from gaas.vision_gen.vision_gen import VisionGen
 from globals import app_instance
 from router.health_check_route import health_check_router
@@ -70,6 +71,8 @@ async def lifespan(app: FastAPI):
         app.state.gaas = NERGen(model_manager=model_manager)
     elif model_type == "embed":
         app.state.gaas = EmbedGen(model_manager=model_manager)
+    elif model_type == "vision-embed":
+        app.state.gaas = VisionEmbedGen(model_manager=model_manager)
     elif model_type == "vision":
         app.state.gaas = VisionGen(model_manager=model_manager)
     else:

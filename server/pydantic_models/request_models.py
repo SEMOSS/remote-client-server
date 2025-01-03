@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Union, Dict
 from enum import Enum
 
@@ -57,8 +57,39 @@ class ChatCompletionRequest(BaseModel):
 
 # ----------------- End Chat Completion -----------------
 
+# ----------------- Embeddings -----------------
+
+
+class ImageUrl(BaseModel):
+    url: str
+
+
+class ImageInput(BaseModel):
+    type: str = Field(..., pattern="^image_url$")
+    image_url: ImageUrl
+
 
 class EmbeddingRequest(BaseModel):
-    input: Union[str, List[str]]
+    input: Union[str, List[str], ImageInput, List[ImageInput]]
     model: Optional[str] = None
     encoding_format: str = "float"
+
+    def is_image_request(self) -> bool:
+        """Check if this is an image embedding request."""
+        if isinstance(self.input, (ImageInput, list)):
+            if isinstance(self.input, list):
+                return len(self.input) > 0 and isinstance(self.input[0], ImageInput)
+            return True
+        return False
+
+    def get_image_urls(self) -> List[str]:
+        """Extract image URLs from the request."""
+        if not self.is_image_request():
+            raise ValueError("Not an image embedding request")
+
+        if isinstance(self.input, ImageInput):
+            return [self.input.image_url.url]
+        return [item.image_url.url for item in self.input]
+
+
+# ----------------- End Embeddings -----------------

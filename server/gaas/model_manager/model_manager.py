@@ -130,6 +130,10 @@ class ModelManager:
                 return self.initialize_ner_model(model_files_path, **model_kwargs)
             elif model_type == "embed":
                 return self.initialize_embedding_model(model_files_path, **model_kwargs)
+            elif model_type == "vision-embed":
+                return self.initialize_image_embedding_model(
+                    model_files_path, **model_kwargs
+                )
             elif model_type == "vision":
                 return self.initialize_vision_model(model_files_path, **model_kwargs)
 
@@ -165,6 +169,43 @@ class ModelManager:
             return True
         except Exception as e:
             logger.error(f"Failed to initialize embedding model: {e}")
+            raise
+
+    def initialize_image_embedding_model(self, model_files_path, **model_kwargs):
+        """Initialize an image embedding model."""
+        try:
+            logger.info(f"Initializing image embedding model on device: {self._device}")
+
+            if "device_map" in model_kwargs:
+                del model_kwargs["device_map"]
+
+            self._model = self.initialize_model_with_flash_attention(
+                AutoModel,
+                model_files_path,
+                **model_kwargs,
+            )
+
+            self._model = self._model.to(self._device)
+            self._model.eval()
+
+            try:
+                self._processor = AutoProcessor.from_pretrained(
+                    model_files_path, trust_remote_code=True
+                )
+            except Exception:
+                self._processor = AutoImageProcessor.from_pretrained(
+                    model_files_path, trust_remote_code=True
+                )
+
+            logger.info(
+                f"Model device after initialization: {next(self._model.parameters()).device}"
+            )
+
+            self._initialized = True
+            logger.info("Image Embedding Model loaded successfully.")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize image embedding model: {e}")
             raise
 
     def initialize_ner_model(self, model_files_path, **model_kwargs):
