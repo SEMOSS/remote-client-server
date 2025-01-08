@@ -2,6 +2,8 @@ import os
 import logging
 import time
 import torch
+import subprocess
+import threading
 from transformers import (
     AutoModelForCausalLM,
     AutoModel,
@@ -64,106 +66,170 @@ class ModelManager:
         """Initialize a model with proper Flash Attention settings based on analysis"""
         start_time = time.time()
 
-        t0 = time.time()
-        flash_attn_available = self._check_flash_attention()
-        logger.info(f"Flash attention check took: {time.time() - t0:.2f} seconds")
-
-        t0 = time.time()
-        total_size = 0
-        file_count = 0
-        for root, dirs, files in os.walk(model_files_path):
-            for file in files:
-                file_path = os.path.join(root, file)
-                total_size += os.path.getsize(file_path)
-                file_count += 1
-        logger.info(
-            f"Model directory analysis - Files: {file_count}, Total size: {total_size / (1024*1024):.2f} MB"
-        )
-        logger.info(f"Directory analysis took: {time.time() - t0:.2f} seconds")
+        gpu_monitor = GPUMonitor()
+        gpu_monitor.start()
 
         try:
-            if flash_attn_available:
-                t0 = time.time()
-                model_files_manager = ModelFilesManager()
-                model_uses_flash_attn = (
-                    model_files_manager.analyze_flash_attention_compatibility()
-                )
-                logger.info(
-                    f"Flash attention compatibility analysis took: {time.time() - t0:.2f} seconds"
-                )
+            t0 = time.time()
+            flash_attn_available = self._check_flash_attention()
+            logger.info(f"Flash attention check took: {time.time() - t0:.2f} seconds")
 
-                if model_uses_flash_attn:
-                    logger.info("Attempting to load model with Flash Attention 2")
+            t0 = time.time()
+            total_size = 0
+            file_count = 0
+            for root, dirs, files in os.walk(model_files_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    total_size += os.path.getsize(file_path)
+                    file_count += 1
+            logger.info(
+                f"Model directory analysis - Files: {file_count}, Total size: {total_size / (1024*1024):.2f} MB"
+            )
+            logger.info(f"Directory analysis took: {time.time() - t0:.2f} seconds")
+
+            try:
+                if flash_attn_available:
                     t0 = time.time()
-                    try:
-                        # Trying Flash Attention 2 first
-                        model_kwargs["attn_implementation"] = "flash_attention_2"
-                        model = model_class.from_pretrained(
-                            model_files_path, **model_kwargs
-                        )
-                        logger.info(
-                            f"Model loading with Flash Attention 2 took: {time.time() - t0:.2f} seconds"
-                        )
-                        return model
-                    except Exception as e:
-                        logger.warning(f"Failed to load with Flash Attention 2: {e}")
+                    model_files_manager = ModelFilesManager()
+                    model_uses_flash_attn = (
+                        model_files_manager.analyze_flash_attention_compatibility()
+                    )
+                    logger.info(
+                        f"Flash attention compatibility analysis took: {time.time() - t0:.2f} seconds"
+                    )
+
+                    if model_uses_flash_attn:
+                        logger.info("Attempting to load model with Flash Attention 2")
+                        t0 = time.time()
                         try:
-                            # Fall back to Flash Attention 1
-                            logger.info(
-                                "Attempting to load model with Flash Attention 1"
-                            )
-                            t0 = time.time()
-                            model_kwargs["attn_implementation"] = "flash_attention"
+                            # Trying Flash Attention 2 first
+                            model_kwargs["attn_implementation"] = "flash_attention_2"
                             model = model_class.from_pretrained(
                                 model_files_path, **model_kwargs
                             )
                             logger.info(
-                                f"Model loading with Flash Attention 1 took: {time.time() - t0:.2f} seconds"
+                                f"Model loading with Flash Attention 2 took: {time.time() - t0:.2f} seconds"
                             )
+
+                            gpu_monitor.stop()
+                            gpu_monitor.join()
+                            if gpu_monitor.readings:
+                                max_memory = max(
+                                    float(r.split(",")[1]) for r in gpu_monitor.readings
+                                )
+                                max_util = max(
+                                    float(r.split(",")[3]) for r in gpu_monitor.readings
+                                )
+                                logger.info(
+                                    f"Peak GPU memory during FA2 load: {max_memory:.2f} MB"
+                                )
+                                logger.info(
+                                    f"Peak GPU utilization during FA2 load: {max_util:.2f}%"
+                                )
                             return model
                         except Exception as e:
-                            logger.warning(f"Failed to load with Flash Attention: {e}")
-                            logger.info("Falling back to standard attention")
-                else:
-                    logger.warning(
-                        "Flash attention available but model does not use it.. Loading model with standard attention"
-                    )
+                            logger.warning(
+                                f"Failed to load with Flash Attention 2: {e}"
+                            )
+                            try:
+                                # Fall back to Flash Attention 1
+                                logger.info(
+                                    "Attempting to load model with Flash Attention 1"
+                                )
+                                t0 = time.time()
+                                model_kwargs["attn_implementation"] = "flash_attention"
+                                model = model_class.from_pretrained(
+                                    model_files_path, **model_kwargs
+                                )
+                                logger.info(
+                                    f"Model loading with Flash Attention 1 took: {time.time() - t0:.2f} seconds"
+                                )
 
-            # Standard loading without flash attention
-            t0_total = time.time()
-            logger.info("Starting standard model loading...")
+                                gpu_monitor.stop()
+                                gpu_monitor.join()
+                                if gpu_monitor.readings:
+                                    max_memory = max(
+                                        float(r.split(",")[1])
+                                        for r in gpu_monitor.readings
+                                    )
+                                    max_util = max(
+                                        float(r.split(",")[3])
+                                        for r in gpu_monitor.readings
+                                    )
+                                    logger.info(
+                                        f"Peak GPU memory during FA1 load: {max_memory:.2f} MB"
+                                    )
+                                    logger.info(
+                                        f"Peak GPU utilization during FA1 load: {max_util:.2f}%"
+                                    )
+                                return model
+                            except Exception as e:
+                                logger.warning(
+                                    f"Failed to load with Flash Attention: {e}"
+                                )
+                                logger.info("Falling back to standard attention")
+                    else:
+                        logger.warning(
+                            "Flash attention available but model does not use it.. Loading model with standard attention"
+                        )
 
-            # Track config loading
-            t0 = time.time()
-            config = AutoConfig.from_pretrained(
-                model_files_path, trust_remote_code=True
-            )
-            logger.info(f"Config loading took: {time.time() - t0:.2f} seconds")
+                # Standard loading without flash attention
+                t0_total = time.time()
+                logger.info("Starting standard model loading...")
 
-            # Track actual model loading
-            t0 = time.time()
-            model_kwargs.pop("attn_implementation", None)
-            model = model_class.from_pretrained(
-                model_files_path, config=config, **model_kwargs
-            )
-            logger.info(f"Actual model loading took: {time.time() - t0:.2f} seconds")
+                # Track config loading
+                t0 = time.time()
+                config = AutoConfig.from_pretrained(
+                    model_files_path, trust_remote_code=True
+                )
+                logger.info(f"Config loading took: {time.time() - t0:.2f} seconds")
 
-            total_load_time = time.time() - t0_total
-            logger.info(
-                f"Standard model loading total time: {total_load_time:.2f} seconds"
-            )
-
-            # Log memory stats right after loading
-            if torch.cuda.is_available():
-                memory_allocated = torch.cuda.memory_allocated() / 1024**2
-                memory_reserved = torch.cuda.memory_reserved() / 1024**2
+                # Track actual model loading
+                t0 = time.time()
+                model_kwargs.pop("attn_implementation", None)
+                model = model_class.from_pretrained(
+                    model_files_path, config=config, **model_kwargs
+                )
                 logger.info(
-                    f"GPU Memory after loading - Allocated: {memory_allocated:.2f} MB, Reserved: {memory_reserved:.2f} MB"
+                    f"Actual model loading took: {time.time() - t0:.2f} seconds"
                 )
 
-            return model
+                total_load_time = time.time() - t0_total
+                logger.info(
+                    f"Standard model loading total time: {total_load_time:.2f} seconds"
+                )
+
+                gpu_monitor.stop()
+                gpu_monitor.join()
+
+                # Log GPU monitoring summary
+                if gpu_monitor.readings:
+                    max_memory = max(
+                        float(r.split(",")[1]) for r in gpu_monitor.readings
+                    )
+                    max_util = max(float(r.split(",")[3]) for r in gpu_monitor.readings)
+                    logger.info(f"Peak GPU memory during load: {max_memory:.2f} MB")
+                    logger.info(f"Peak GPU utilization during load: {max_util:.2f}%")
+
+                # Log memory stats right after loading
+                if torch.cuda.is_available():
+                    memory_allocated = torch.cuda.memory_allocated() / 1024**2
+                    memory_reserved = torch.cuda.memory_reserved() / 1024**2
+                    logger.info(
+                        f"GPU Memory after loading - Allocated: {memory_allocated:.2f} MB, Reserved: {memory_reserved:.2f} MB"
+                    )
+
+                return model
+
+            except Exception as e:
+                gpu_monitor.stop()
+                gpu_monitor.join()
+                logger.error(f"Failed to initialize model: {e}")
+                raise
 
         except Exception as e:
+            gpu_monitor.stop()
+            gpu_monitor.join()
             logger.error(f"Failed to initialize model: {e}")
             raise
 
@@ -393,3 +459,30 @@ class ModelManager:
     @property
     def processor(self):
         return self._processor
+
+
+class GPUMonitor(threading.Thread):
+    def __init__(self):
+        super().__init__()
+        self.running = True
+        self.readings = []
+
+    def run(self):
+        while self.running:
+            try:
+                output = subprocess.check_output(
+                    [
+                        "nvidia-smi",
+                        "--query-gpu=timestamp,memory.used,memory.total,utilization.gpu",
+                        "--format=csv,noheader,nounits",
+                    ]
+                )
+                reading = output.decode("utf-8").strip()
+                self.readings.append(reading)
+                logger.info(f"GPU Status during load: {reading}")
+            except Exception as e:
+                logger.error(f"Failed to get GPU stats: {e}")
+            time.sleep(1)
+
+    def stop(self):
+        self.running = False
