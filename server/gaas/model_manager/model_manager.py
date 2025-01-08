@@ -278,11 +278,9 @@ class ModelManager:
                 f"Starting embedding model initialization on device: {self._device}"
             )
 
-            if "device_map" in model_kwargs:
-                del model_kwargs["device_map"]
-
             model_kwargs.update(
                 {
+                    "device_map": "cuda:0",
                     "low_cpu_mem_usage": True,  # More memory efficient loading
                     "torch_dtype": torch.float16,  # Use half precision during loading
                     "use_safetensors": True,  # Faster loading if safetensors are available
