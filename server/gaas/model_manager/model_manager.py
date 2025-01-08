@@ -205,22 +205,30 @@ class ModelManager:
             raise
 
     def initialize_embedding_model(self, model_files_path, **model_kwargs):
-        """Initialize an embedding model with detailed timing logs."""
+        """Initialize an embedding model with optimized loading parameters."""
         try:
             total_start = time.time()
             logger.info(
                 f"Starting embedding model initialization on device: {self._device}"
             )
 
-            t0 = time.time()
             if "device_map" in model_kwargs:
                 del model_kwargs["device_map"]
-            logger.info(
-                f"Model kwargs preparation took: {time.time() - t0:.2f} seconds"
+
+            model_kwargs.update(
+                {
+                    "low_cpu_mem_usage": True,  # More memory efficient loading
+                    "torch_dtype": torch.float16,  # Use half precision during loading
+                    "use_safetensors": True,  # Faster loading if safetensors are available
+                    "use_auth_token": False,  # Ensure we're not trying to download
+                    "local_files_only": True,  # Prevent any download attempts
+                    "trust_remote_code": True,
+                }
             )
 
+            logger.info(f"Using optimized model kwargs: {model_kwargs}")
+
             t0 = time.time()
-            logger.info("Starting model initialization with flash attention check...")
             self._model = self.initialize_model_with_flash_attention(
                 AutoModel,
                 model_files_path,
@@ -228,9 +236,10 @@ class ModelManager:
             )
             logger.info(f"Model initialization took: {time.time() - t0:.2f} seconds")
 
+            # Move to GPU efficiently
             t0 = time.time()
             logger.info(f"Moving model to device: {self._device}")
-            self._model = self._model.to(self._device)
+            self._model = self._model.to(self._device, non_blocking=True)
             logger.info(f"Moving to device took: {time.time() - t0:.2f} seconds")
 
             t0 = time.time()
@@ -248,12 +257,8 @@ class ModelManager:
             logger.info(f"Final model device: {next(self._model.parameters()).device}")
 
             if torch.cuda.is_available():
-                memory_allocated = (
-                    torch.cuda.memory_allocated() / 1024**2
-                )  # Convert to MB
-                memory_reserved = (
-                    torch.cuda.memory_reserved() / 1024**2
-                )  # Convert to MB
+                memory_allocated = torch.cuda.memory_allocated() / 1024**2
+                memory_reserved = torch.cuda.memory_reserved() / 1024**2
                 logger.info(f"GPU Memory allocated: {memory_allocated:.2f} MB")
                 logger.info(f"GPU Memory reserved: {memory_reserved:.2f} MB")
 
