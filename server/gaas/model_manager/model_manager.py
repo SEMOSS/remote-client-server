@@ -1,4 +1,5 @@
 import logging
+import time
 import torch
 from transformers import (
     AutoModelForCausalLM,
@@ -59,47 +60,61 @@ class ModelManager:
         self, model_class, model_files_path: str, **model_kwargs
     ):
         """Initialize a model with proper Flash Attention settings based on analysis"""
-        # Check if flash_attn is available on container
+        start_time = time.time()
+
+        t0 = time.time()
         flash_attn_available = self._check_flash_attention()
+        logger.info(f"Flash attention check took: {time.time() - t0:.2f} seconds")
 
         try:
             if flash_attn_available:
-                # Check if model uses flash attention
+                t0 = time.time()
                 model_files_manager = ModelFilesManager()
                 model_uses_flash_attn = (
                     model_files_manager.analyze_flash_attention_compatibility()
                 )
+                logger.info(
+                    f"Flash attention compatibility analysis took: {time.time() - t0:.2f} seconds"
+                )
 
                 if model_uses_flash_attn:
                     logger.info("Attempting to load model with Flash Attention 2")
+                    t0 = time.time()
                     try:
-                        # Trying Flash Attention 2 first
                         model_kwargs["attn_implementation"] = "flash_attention_2"
-                        return model_class.from_pretrained(
+                        model = model_class.from_pretrained(
                             model_files_path, **model_kwargs
                         )
+                        logger.info(
+                            f"Model loading with Flash Attention 2 took: {time.time() - t0:.2f} seconds"
+                        )
+                        return model
                     except Exception as e:
                         logger.warning(f"Failed to load with Flash Attention 2: {e}")
+                        logger.info("Attempting to load model with Flash Attention 1")
+                        t0 = time.time()
                         try:
-                            # Fall back to Flash Attention 1
-                            logger.info(
-                                "Attempting to load model with Flash Attention 1"
-                            )
                             model_kwargs["attn_implementation"] = "flash_attention"
-                            return model_class.from_pretrained(
+                            model = model_class.from_pretrained(
                                 model_files_path, **model_kwargs
                             )
+                            logger.info(
+                                f"Model loading with Flash Attention 1 took: {time.time() - t0:.2f} seconds"
+                            )
+                            return model
                         except Exception as e:
                             logger.warning(f"Failed to load with Flash Attention: {e}")
-                            logger.info("Falling back to standard attention")
-                else:
-                    logger.warning(
-                        "Flash attention available but model does not use it.. Loading model with standard attention"
-                    )
 
-            # Remove any flash attention config if we get here
+            t0 = time.time()
             model_kwargs.pop("attn_implementation", None)
-            return model_class.from_pretrained(model_files_path, **model_kwargs)
+            model = model_class.from_pretrained(model_files_path, **model_kwargs)
+            logger.info(f"Standard model loading took: {time.time() - t0:.2f} seconds")
+
+            total_time = time.time() - start_time
+            logger.info(
+                f"Total model initialization process took: {total_time:.2f} seconds"
+            )
+            return model
 
         except Exception as e:
             logger.error(f"Failed to initialize model: {e}")
@@ -143,30 +158,65 @@ class ModelManager:
             raise
 
     def initialize_embedding_model(self, model_files_path, **model_kwargs):
-        """Initialize an embedding model."""
+        """Initialize an embedding model with detailed timing logs."""
         try:
-            logger.info(f"Initializing embedding model on device: {self._device}")
+            total_start = time.time()
+            logger.info(
+                f"Starting embedding model initialization on device: {self._device}"
+            )
 
+            t0 = time.time()
             if "device_map" in model_kwargs:
                 del model_kwargs["device_map"]
+            logger.info(
+                f"Model kwargs preparation took: {time.time() - t0:.2f} seconds"
+            )
 
+            t0 = time.time()
+            logger.info("Starting model initialization with flash attention check...")
             self._model = self.initialize_model_with_flash_attention(
                 AutoModel,
                 model_files_path,
                 **model_kwargs,
             )
+            logger.info(f"Model initialization took: {time.time() - t0:.2f} seconds")
 
+            t0 = time.time()
+            logger.info(f"Moving model to device: {self._device}")
             self._model = self._model.to(self._device)
-            self._model.eval()
-            self._tokenizer = Tokenizer().tokenizer
+            logger.info(f"Moving to device took: {time.time() - t0:.2f} seconds")
 
+            t0 = time.time()
+            logger.info("Setting model to eval mode...")
+            self._model.eval()
+            logger.info(f"Setting eval mode took: {time.time() - t0:.2f} seconds")
+
+            t0 = time.time()
+            logger.info("Initializing tokenizer...")
+            self._tokenizer = Tokenizer().tokenizer
             logger.info(
-                f"Model device after initialization: {next(self._model.parameters()).device}"
+                f"Tokenizer initialization took: {time.time() - t0:.2f} seconds"
             )
 
+            logger.info(f"Final model device: {next(self._model.parameters()).device}")
+
+            if torch.cuda.is_available():
+                memory_allocated = (
+                    torch.cuda.memory_allocated() / 1024**2
+                )  # Convert to MB
+                memory_reserved = (
+                    torch.cuda.memory_reserved() / 1024**2
+                )  # Convert to MB
+                logger.info(f"GPU Memory allocated: {memory_allocated:.2f} MB")
+                logger.info(f"GPU Memory reserved: {memory_reserved:.2f} MB")
+
             self._initialized = True
-            logger.info("Embedding Model loaded successfully.")
+            total_time = time.time() - total_start
+            logger.info(
+                f"Total embedding model initialization took: {total_time:.2f} seconds"
+            )
             return True
+
         except Exception as e:
             logger.error(f"Failed to initialize embedding model: {e}")
             raise

@@ -7,12 +7,7 @@ A built-in queuing system manages GPU resources, ensuring requests are processed
 Currently, the server is configured to run one model type at a time. For instructions on adding new models, please refer to the "Adding New Models" section.
 
 ## Current Supported Models
-The following models are currently supported. Use the `MODEL` environment variable to specify which model to load by including the value of the key value pair of the supported models below.
 
-- Image Generation 
-    - MODEL: `PixArt-alpha/PixArt-XL-2-1024-MS` -- SHORTNAME : `pixart`
-    - MODEL: `microsoft/Phi-3-mini-128k-instruct` -- SHORTNAME : `phi-3-mini-128k-instruct`
-    - MODEL: `urchade/gliner_multi-v2.1` -- SHORTNAME : `gliner-multi-v2-1`
 
 ## PyTorch/CUDA
 - You can test your local PyTorch/CUDA installation by using the `utils/torch_test.ipynb` notebook.
