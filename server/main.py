@@ -23,6 +23,7 @@ from router.queue_route import queue_router
 from router.metrics_route import metrics_router
 from router.status_route import status_route
 from router.embeddings_route import embeddings_router
+from router.model_load_check_route import model_loaded_check_router
 
 
 # from router.reclaim_route import reclaim_route
@@ -114,6 +115,7 @@ app.include_router(queue_router, prefix="/api")
 # app.include_router(reclaim_route, prefix="/api")
 app.include_router(chat_completion_router, prefix="/api")
 app.include_router(embeddings_router, prefix="/api")
+app.include_router(model_loaded_check_router, prefix="/api")
 app.include_router(metrics_router)
 
 if __name__ == "__main__":
