@@ -1,12 +1,11 @@
 import logging
 import torch
 from PIL import Image
-import base64
 import io
-from typing import List, Union
+from typing import List
 import requests
 from gaas.model_manager.model_manager import ModelManager
-from pydantic_models.request_models import EmbeddingRequest, ImageInput
+from pydantic_models.request_models import EmbeddingRequest
 from pydantic_models.response_models import EmbeddingResponse
 
 logger = logging.getLogger(__name__)
@@ -35,49 +34,32 @@ class VisionEmbedGen:
             logger.error(f"Error downloading image from {url}: {str(e)}")
             raise ValueError(f"Failed to download image from URL: {str(e)}")
 
-    def _process_image(self, image_data: Union[str, bytes, ImageInput]) -> Image.Image:
-        """Process raw image data into PIL Image."""
+    def _process_image(self, image_url: str) -> Image.Image:
+        """Process image from URL into PIL Image."""
         try:
-            if isinstance(image_data, ImageInput):
-                # Handle ImageInput object with URL
-                image_bytes = self._download_image(image_data.image_url.url)
-            elif isinstance(image_data, str):
-                # Handle base64 encoded images
-                if image_data.startswith("data:image"):
-                    image_data = image_data.split(",")[1]
-                image_bytes = base64.b64decode(image_data)
-            else:
-                image_bytes = image_data
-
+            image_bytes = self._download_image(image_url)
             return Image.open(io.BytesIO(image_bytes))
         except Exception as e:
             logger.error(f"Error processing image: {str(e)}")
             raise ValueError(f"Invalid image data: {str(e)}")
 
-    def _batch_process_images(
-        self, images_data: List[Union[str, bytes, ImageInput]]
-    ) -> torch.Tensor:
-        """Process a batch of images into model input format."""
+    def _batch_process_images(self, image_urls: List[str]) -> torch.Tensor:
+        """Process a batch of image URLs into model input format."""
         processed_images = []
-        for img_data in images_data:
-            pil_image = self._process_image(img_data)
+        for url in image_urls:
+            pil_image = self._process_image(url)
             processed = self.processor(images=pil_image, return_tensors="pt")
             processed_images.append(processed["pixel_values"])
 
-        # Stack all processed images into a single batch
         return torch.cat(processed_images, dim=0).to(self.device)
 
     def generate(self, request: EmbeddingRequest) -> EmbeddingResponse:
         try:
             logger.info("Starting image embedding generation...")
 
-            images_input = (
-                [request.input]
-                if isinstance(request.input, (str, bytes, ImageInput))
-                else request.input
-            )
+            image_urls = request.get_image_urls()
 
-            pixel_values = self._batch_process_images(images_input)
+            pixel_values = self._batch_process_images(image_urls)
 
             with torch.no_grad():
                 outputs = self.model(pixel_values)
@@ -93,8 +75,8 @@ class VisionEmbedGen:
             embeddings_list = normalized_embeddings.numpy().tolist()
 
             token_usage = {
-                "prompt_tokens": len(images_input),
-                "total_tokens": len(images_input),
+                "prompt_tokens": len(image_urls),
+                "total_tokens": len(image_urls),
             }
 
             embedding_data = [
