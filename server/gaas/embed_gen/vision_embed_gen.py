@@ -4,6 +4,7 @@ from PIL import Image
 import io
 from typing import List
 import requests
+import base64
 from gaas.model_manager.model_manager import ModelManager
 from pydantic_models.request_models import EmbeddingRequest
 from pydantic_models.response_models import EmbeddingResponse
@@ -34,20 +35,37 @@ class VisionEmbedGen:
             logger.error(f"Error downloading image from {url}: {str(e)}")
             raise ValueError(f"Failed to download image from URL: {str(e)}")
 
-    def _process_image(self, image_url: str) -> Image.Image:
-        """Process image from URL into PIL Image."""
+    def _decode_base64(self, base64_string: str) -> bytes:
+        """Decode base64 image string to bytes."""
         try:
-            image_bytes = self._download_image(image_url)
+            if base64_string.startswith("data:image/"):
+                base64_string = base64_string.split(",")[1]
+            elif base64_string.startswith("base64:"):
+                base64_string = base64_string[7:]
+
+            return base64.b64decode(base64_string)
+        except Exception as e:
+            logger.error(f"Error decoding base64 image: {str(e)}")
+            raise ValueError(f"Invalid base64 image data: {str(e)}")
+
+    def _process_image_input(self, image_input: str) -> Image.Image:
+        """Process image from URL or base64 into PIL Image."""
+        try:
+            if image_input.startswith(("http://", "https://")):
+                image_bytes = self._download_image(image_input)
+            else:
+                image_bytes = self._decode_base64(image_input)
+
             return Image.open(io.BytesIO(image_bytes))
         except Exception as e:
             logger.error(f"Error processing image: {str(e)}")
             raise ValueError(f"Invalid image data: {str(e)}")
 
-    def _batch_process_images(self, image_urls: List[str]) -> torch.Tensor:
-        """Process a batch of image URLs into model input format."""
+    def _batch_process_images(self, image_inputs: List[str]) -> torch.Tensor:
+        """Process a batch of image inputs into model input format."""
         processed_images = []
-        for url in image_urls:
-            pil_image = self._process_image(url)
+        for input_data in image_inputs:
+            pil_image = self._process_image_input(input_data)
             processed = self.processor(images=pil_image, return_tensors="pt")
             processed_images.append(processed["pixel_values"])
 
@@ -57,9 +75,8 @@ class VisionEmbedGen:
         try:
             logger.info("Starting image embedding generation...")
 
-            image_urls = request.get_image_urls()
-
-            pixel_values = self._batch_process_images(image_urls)
+            image_inputs = request.get_image_inputs()
+            pixel_values = self._batch_process_images(image_inputs)
 
             with torch.no_grad():
                 outputs = self.model(pixel_values)
@@ -75,8 +92,8 @@ class VisionEmbedGen:
             embeddings_list = normalized_embeddings.numpy().tolist()
 
             token_usage = {
-                "prompt_tokens": len(image_urls),
-                "total_tokens": len(image_urls),
+                "prompt_tokens": len(image_inputs),
+                "total_tokens": len(image_inputs),
             }
 
             embedding_data = [

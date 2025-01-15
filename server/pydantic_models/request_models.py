@@ -65,19 +65,25 @@ class EmbeddingRequest(BaseModel):
     model: Optional[str] = None
     encoding_format: str = "float"
 
-    def is_image_request(self) -> bool:
-        """Check if this is an image embedding request based on URL patterns."""
+    def is_valid_input(self) -> bool:
+        """Check if the input is either a URL or base64 encoded image."""
         if isinstance(self.input, str):
-            return self.input.startswith(("http://", "https://"))
+            return self._is_valid_image_input(self.input)
         return len(self.input) > 0 and all(
-            isinstance(url, str) and url.startswith(("http://", "https://"))
+            isinstance(url, str) and self._is_valid_image_input(url)
             for url in self.input
         )
 
-    def get_image_urls(self) -> List[str]:
-        """Extract image URLs from the request."""
-        if not self.is_image_request():
-            raise ValueError("Not an image embedding request")
+    def _is_valid_image_input(self, input_str: str) -> bool:
+        """Validate if input is URL or base64."""
+        return input_str.startswith(("http://", "https://")) or input_str.startswith(
+            ("data:image/", "base64:")
+        )
+
+    def get_image_inputs(self) -> List[str]:
+        """Extract image inputs from the request."""
+        if not self.is_valid_input():
+            raise ValueError("Invalid image input format")
 
         if isinstance(self.input, str):
             return [self.input]
