@@ -1,12 +1,9 @@
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 import asyncio
-import json
 import uuid
 import logging
-import time
 from pydantic_models.request_models import EmbeddingRequest
-from pprint import pprint
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +21,6 @@ async def embeddings(request: Request):
         logger.error(f"Error parsing request: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Invalid request format: {str(e)}")
 
-    pprint(request_model)
     app = request.app
     queue_manager = app.state.queue_manager
     job_id = str(uuid.uuid4())
