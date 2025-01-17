@@ -26,3 +26,5 @@ guidance
 jsonschema
 einops
 packaging
+redis[hiredis]
+pendulum

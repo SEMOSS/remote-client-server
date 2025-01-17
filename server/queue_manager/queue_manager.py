@@ -1,8 +1,11 @@
+import os
 import asyncio
 import logging
 import concurrent.futures
 from typing import Dict, Any
 from prometheus_client import Gauge
+from redis_manager.redis_manager import RedisManager
+from model_utils.model_config import get_model_config
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +43,6 @@ class QueueManager:
                 logger.info(f"Processing job {job_id}.")
 
                 try:
-                    # Running image generation in a separate thread
                     loop = asyncio.get_running_loop()
                     result = await asyncio.wait_for(
                         loop.run_in_executor(self.executor, self.model_switch, request),
@@ -64,7 +66,15 @@ class QueueManager:
             finally:
                 self.current_job = None
                 self.queue.task_done()
+                await self.update_redis()
                 queue_size_gauge.set(self.queue.qsize())
+
+    async def update_redis(self):
+        if os.getenv("NO_REDIS") == "True":
+            return
+        redis = RedisManager()
+        semoss_id = get_model_config().get("semoss_id")
+        await redis.update_deployment_status(semoss_id)
 
     async def get_job_position(self, job_id: str) -> int:
         return next(

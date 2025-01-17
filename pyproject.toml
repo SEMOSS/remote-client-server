@@ -31,5 +31,7 @@ dependencies = [
     "jsonschema>=4.23.0",
     "einops>=0.8.0",
     "hf-transfer>=0.1.8",
+    "pendulum>=3.0.0",
+    "redis[hiredis]>=5.2.1",
 ]
 

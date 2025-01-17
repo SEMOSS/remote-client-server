@@ -125,6 +125,8 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, help="Model name")
     parser.add_argument("--model_repo_id", type=str, help="Hugging Face model id")
     parser.add_argument("--model_type", type=str, help="Model type")
+    parser.add_argument("--semoss_id", type=str, help="Semoss model id")
+    parser.add_argument("--no_redis", action="store_true", help="Disable Redis")
     parser.add_argument(
         "--local_files", action="store_true", help="Use local model files"
     )
@@ -137,11 +139,18 @@ if __name__ == "__main__":
         os.environ["MODEL_REPO_ID"] = args.model_repo_id
     if args.model_type:
         os.environ["MODEL_TYPE"] = args.model_type
+    if args.semoss_id:
+        os.environ["SEMOSS_ID"] = args.semoss_id
 
     if args.local_files:
         os.environ["LOCAL_FILES"] = "True"
     else:
         os.environ["LOCAL_FILES"] = "False"
+
+    if args.no_redis:
+        os.environ["NO_REDIS"] = "True"
+    else:
+        os.environ["NO_REDIS"] = "False"
 
     import uvicorn
 
