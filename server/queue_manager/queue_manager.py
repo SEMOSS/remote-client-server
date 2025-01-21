@@ -66,7 +66,7 @@ class QueueManager:
             finally:
                 self.current_job = None
                 self.queue.task_done()
-                await self.update_redis()
+                # await self.update_redis()
                 queue_size_gauge.set(self.queue.qsize())
 
     async def update_redis(self):
