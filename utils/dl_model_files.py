@@ -8,9 +8,9 @@ def download_model_files():
     Use the `snapshot_download` function from the `huggingface_hub` library to download the model files locally.
     """
     # change this
-    model_repo_id = "microsoft/Florence-2-large"
+    model_repo_id = "bytedance-research/UI-TARS-7B-DPO"
     # change this
-    short_name = "microsoft-florence-2-large"
+    short_name = "ui-tars-7b-dpo"
 
     # don't change this
     local_model_dir = f"./model_files/{short_name}"

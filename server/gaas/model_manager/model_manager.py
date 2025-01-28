@@ -390,11 +390,33 @@ class ModelManager:
 
     def initialize_text_model(self, model_files_path, **model_kwargs):
         try:
-            self._model = self.initialize_model_with_flash_attention(
-                AutoModelForCausalLM,
-                model_files_path,
-                **model_kwargs,
+            # First try to load the config to check the architecture
+            config = AutoConfig.from_pretrained(
+                model_files_path, trust_remote_code=True
             )
+
+            # Check if it's a VL (Vision-Language) model
+            if hasattr(config, "architectures") and any(
+                "VL" in arch for arch in config.architectures
+            ):
+                from transformers import AutoModelForVision2Seq
+
+                logger.info(
+                    "Detected Vision-Language model, using AutoModelForVision2Seq"
+                )
+                self._model = self.initialize_model_with_flash_attention(
+                    AutoModelForVision2Seq,
+                    model_files_path,
+                    **model_kwargs,
+                )
+            else:
+                # Standard text model loading
+                self._model = self.initialize_model_with_flash_attention(
+                    AutoModelForCausalLM,
+                    model_files_path,
+                    **model_kwargs,
+                )
+
             self._tokenizer = Tokenizer().tokenizer
             self._pipe = pipeline(
                 "text-generation",
@@ -409,31 +431,78 @@ class ModelManager:
             raise
 
     def initialize_vision_model(self, model_files_path, **model_kwargs):
-        """Initialize a vision model."""
+        """Initialize a vision or vision-language model."""
         try:
             logger.info(f"Initializing vision model on device: {self._device}")
 
-            # Load model
-            self._model = self.initialize_model_with_flash_attention(
-                AutoModelForCausalLM, model_files_path, **model_kwargs
+            # Load configuration first to determine model type
+            config = AutoConfig.from_pretrained(
+                model_files_path, trust_remote_code=True
             )
 
+            # Detect model architecture type
+            if hasattr(config, "architectures"):
+                architecture = config.architectures[0] if config.architectures else None
+                logger.info(f"Detected model architecture: {architecture}")
+
+                if "VL" in architecture or "Vision" in architecture:
+                    # Handle Vision-Language models
+                    from transformers import AutoModelForVision2Seq
+
+                    logger.info(
+                        "Loading as Vision-Language model using AutoModelForVision2Seq"
+                    )
+                    self._model = self.initialize_model_with_flash_attention(
+                        AutoModelForVision2Seq, model_files_path, **model_kwargs
+                    )
+                else:
+                    # Default vision model loading
+                    logger.info(
+                        "Loading as standard vision model using AutoModelForCausalLM"
+                    )
+                    self._model = self.initialize_model_with_flash_attention(
+                        AutoModelForCausalLM, model_files_path, **model_kwargs
+                    )
+
             # Load processor/feature extractor
+            logger.info("Attempting to load processor/image processor...")
             try:
+                # Try loading processor first (preferred for newer models)
                 self._processor = AutoProcessor.from_pretrained(
                     model_files_path, trust_remote_code=True
                 )
-            except Exception:
-                # Fallback to image processor if processor not available
-                self._processor = AutoImageProcessor.from_pretrained(
-                    model_files_path, trust_remote_code=True
-                )
+                logger.info("Successfully loaded AutoProcessor")
+            except Exception as processor_error:
+                logger.warning(f"AutoProcessor loading failed: {processor_error}")
+                try:
+                    # Fallback to image processor
+                    self._processor = AutoImageProcessor.from_pretrained(
+                        model_files_path, trust_remote_code=True
+                    )
+                    logger.info("Successfully loaded AutoImageProcessor")
+                except Exception as image_processor_error:
+                    logger.error(
+                        f"Both processor loading attempts failed. AutoImageProcessor error: {image_processor_error}"
+                    )
+                    raise
 
-            self._tokenizer = Tokenizer().tokenizer
+            if hasattr(config, "vocab_size"):
+                logger.info("Initializing tokenizer for vision-language model")
+                self._tokenizer = Tokenizer().tokenizer
+
+            # Log model device placement
+            if torch.cuda.is_available():
+                device_id = next(self._model.parameters()).device
+                memory_allocated = torch.cuda.memory_allocated() / 1024**2
+                memory_reserved = torch.cuda.memory_reserved() / 1024**2
+                logger.info(f"Model loaded on device: {device_id}")
+                logger.info(f"GPU Memory allocated: {memory_allocated:.2f} MB")
+                logger.info(f"GPU Memory reserved: {memory_reserved:.2f} MB")
 
             self._initialized = True
-            logger.info("Vision Model loaded successfully.")
+            logger.info("Vision/Vision-Language Model loaded successfully")
             return True
+
         except Exception as e:
             logger.error(f"Failed to initialize vision model: {e}")
             raise
