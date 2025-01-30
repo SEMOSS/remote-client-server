@@ -244,8 +244,12 @@ class ModelManager:
             model_files_manager = ModelFilesManager()
             model_files_path = model_files_manager.get_model_files_path()
             model_kwargs = {
-                "device_map": "cuda",
+                "device_map": "auto",
+                "low_cpu_mem_usage": True,
                 "torch_dtype": torch.float16,
+                "use_safetensors": True,
+                "use_auth_token": False,
+                "local_files_only": True,
                 "trust_remote_code": True,
             }
 
