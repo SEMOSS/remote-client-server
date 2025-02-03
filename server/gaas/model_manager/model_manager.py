@@ -246,7 +246,7 @@ class ModelManager:
             model_kwargs = {
                 "device_map": "auto",
                 "low_cpu_mem_usage": True,
-                "torch_dtype": torch.float16,
+                # "torch_dtype": torch.float16,
                 "use_safetensors": True,
                 "use_auth_token": False,
                 "local_files_only": True,

@@ -30,7 +30,7 @@ class VisionGen:
             "temperature": min(request.temperature, 0.3),
             "top_p": min(request.top_p, 0.3),
             "do_sample": True if request.temperature > 0 else False,
-            "num_beams": 5,
+            "num_beams": 1 if request.temperature > 0 else 3,
             "length_penalty": 1.0,
             "repetition_penalty": 1.2,
         }
@@ -129,7 +129,17 @@ class VisionGen:
             generation_config = self._prepare_generation_config(request)
 
             with torch.no_grad():
+                logger.info(
+                    f"Pre-generation memory: {torch.cuda.memory_allocated()/1024**2:.2f}MB"
+                )
                 outputs = self.model.generate(**inputs, **generation_config)
+                logger.info(
+                    f"Post-generation memory: {torch.cuda.memory_allocated()/1024**2:.2f}MB"
+                )
+
+            # Testing some manual memory management to avoid OOM errors
+            del inputs
+            torch.cuda.empty_cache()
 
             generated_text = self.tokenizer.batch_decode(
                 outputs, skip_special_tokens=True, clean_up_tokenization_spaces=True
