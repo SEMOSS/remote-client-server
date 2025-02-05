@@ -88,6 +88,15 @@ python server/main.py --model nomic-ai-nomic-embed-text-v1-5 --model_repo_id nom
 python server/main.py --model gliner-multi-v2-1 --model_repo_id urchade/gliner_multi-v2.1 --model_type ner --semoss_id abd20c47-2ce7-45ef-a10a-572150a3b0d6 --local_files
 ```
 
+### Device Configuration
+When the `model_device` flag isn't specified the server automatically selects the best available device:
+- Uses CUDA if available (`cuda:0`)
+- Falls back to CPU if no GPU is present
+- EX: Running the TinyLlama-1.1B-Chat model locally with CPU using the `model_device` flag. 
+```bash
+python server/main.py --model TinyLlama-1.1B-Chat-v1.0 --model_repo_id TinyLlama/TinyLlama-1.1B-Chat-v1.0 --model_type text --semoss_id 2aa0e4bf-08d5-452e-aa75-dd417f8ae610 --local_files --no_redis --model_device cpu
+```
+
 ## Docker
 The project uses a two-stage Docker build process to optimize build times and reduce the final image size. This process involves creating a base image with common dependencies first, then building the server image on top of it.
 ### Base Image
@@ -158,6 +167,7 @@ Each deployment maintains a Redis hash using the SEMOSS Engine ID as the key, wi
 - `model_name`: The simplified path-safe name of the model
 - `model_repo_id`: The complete HuggingFace repository ID
 - `model_type`: The type of model being served (text, ner, embed, etc.)
+- `model_device`: Controls the hardware device used for model setup
 - `semoss_id`: The unique SEMOSS Engine ID associated with the deployment
 - `address`: The IP address and port where the model is accessible
 - `start_time`: Timestamp when the deployment was initiated
@@ -171,6 +181,7 @@ Example Redis hash:
     "model_name": "gliner-multi-v2-1",
     "model_repo_id": "urchade/gliner_multi-v2.1",
     "model_type": "ner",
+    "model_device": "cuda:0",
     "semoss_id": "abd20c47-2ce7-45ef-a10a-572150a3b0d6",
     "address": "10.218.221.138:31213",
     "start_time": "2025-01-16T17:41:32.934832-05:00",

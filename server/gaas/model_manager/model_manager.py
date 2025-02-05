@@ -38,9 +38,7 @@ class ModelManager:
         if cls._instance is None:
             cls._instance = super(ModelManager, cls).__new__(cls)
             # Initialize device once during instance creation
-            cls._instance._device = torch.device(
-                "cuda:0" if torch.cuda.is_available() else "cpu"
-            )
+            cls._instance._device = cls._instance._get_device_config()
         return cls._instance
 
     @classmethod
@@ -48,6 +46,25 @@ class ModelManager:
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
+
+    def _get_device_config(self):
+        """Get device configuration from environment variables."""
+        device_str = os.environ.get("MODEL_DEVICE", "")
+        if not device_str:
+            return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        try:
+            if device_str.startswith("cuda") and not torch.cuda.is_available():
+                logger.warning(
+                    f"CUDA specified but GPU not available, falling back to CPU"
+                )
+                return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            return torch.device(device_str)
+        except Exception as e:
+            logger.warning(
+                f"Invalid device '{device_str}' specified, falling back to default. Error: {e}"
+            )
+            return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def _check_flash_attention(self):
         """Check if flash attention is available and should be used."""
@@ -66,13 +83,21 @@ class ModelManager:
         """Initialize a model with proper Flash Attention settings based on analysis"""
         start_time = time.time()
 
-        gpu_monitor = GPUMonitor()
-        gpu_monitor.start()
+        gpu_monitor = None
+        hasGPU = torch.cuda.is_available()
+        if hasGPU:
+            gpu_monitor = GPUMonitor()
+            gpu_monitor.start()
+        else:
+            logger.info("No GPU monitoring since GPU is not available")
 
         try:
             t0 = time.time()
             flash_attn_available = self._check_flash_attention()
-            logger.info(f"Flash attention check took: {time.time() - t0:.2f} seconds")
+            if flash_attn_available:
+                logger.info(
+                    f"Flash attention check took: {time.time() - t0:.2f} seconds"
+                )
 
             t0 = time.time()
             total_size = 0
@@ -111,9 +136,10 @@ class ModelManager:
                                 f"Model loading with Flash Attention 2 took: {time.time() - t0:.2f} seconds"
                             )
 
-                            gpu_monitor.stop()
-                            gpu_monitor.join()
-                            if gpu_monitor.readings:
+                            if hasGPU:
+                                gpu_monitor.stop()
+                                gpu_monitor.join()
+                            if gpu_monitor and gpu_monitor.readings:
                                 max_memory = max(
                                     float(r.split(",")[1]) for r in gpu_monitor.readings
                                 )
@@ -145,9 +171,10 @@ class ModelManager:
                                     f"Model loading with Flash Attention 1 took: {time.time() - t0:.2f} seconds"
                                 )
 
-                                gpu_monitor.stop()
-                                gpu_monitor.join()
-                                if gpu_monitor.readings:
+                                if hasGPU:
+                                    gpu_monitor.stop()
+                                    gpu_monitor.join()
+                                if gpu_monitor and gpu_monitor.readings:
                                     max_memory = max(
                                         float(r.split(",")[1])
                                         for r in gpu_monitor.readings
@@ -199,11 +226,12 @@ class ModelManager:
                     f"Standard model loading total time: {total_load_time:.2f} seconds"
                 )
 
-                gpu_monitor.stop()
-                gpu_monitor.join()
+                if hasGPU:
+                    gpu_monitor.stop()
+                    gpu_monitor.join()
 
                 # Log GPU monitoring summary
-                if gpu_monitor.readings:
+                if gpu_monitor and gpu_monitor.readings:
                     max_memory = max(
                         float(r.split(",")[1]) for r in gpu_monitor.readings
                     )
@@ -222,14 +250,16 @@ class ModelManager:
                 return model
 
             except Exception as e:
-                gpu_monitor.stop()
-                gpu_monitor.join()
+                if hasGPU:
+                    gpu_monitor.stop()
+                    gpu_monitor.join()
                 logger.error(f"Failed to initialize model: {e}")
                 raise
 
         except Exception as e:
-            gpu_monitor.stop()
-            gpu_monitor.join()
+            if hasGPU:
+                gpu_monitor.stop()
+                gpu_monitor.join()
             logger.error(f"Failed to initialize model: {e}")
             raise
 
@@ -284,9 +314,13 @@ class ModelManager:
 
             model_kwargs.update(
                 {
-                    "device_map": "cuda:0",
+                    "device_map": "cuda:0" if torch.cuda.is_available() else "cpu",
                     "low_cpu_mem_usage": True,  # More memory efficient loading
-                    "torch_dtype": torch.float16,  # Use half precision during loading
+                    "torch_dtype": (
+                        torch.float16
+                        if str(self._device).startswith("cuda")
+                        else torch.float32
+                    ),  # Use half precision during loading
                     "use_safetensors": True,  # Faster loading if safetensors are available
                     "use_auth_token": False,  # Ensure we're not trying to download
                     "local_files_only": True,  # Prevent any download attempts

@@ -125,6 +125,9 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, help="Model name")
     parser.add_argument("--model_repo_id", type=str, help="Hugging Face model id")
     parser.add_argument("--model_type", type=str, help="Model type")
+    parser.add_argument(
+        "--model_device", type=str, help="Model Device (ex: cpu, cuda (for GPU))"
+    )
     parser.add_argument("--semoss_id", type=str, help="Semoss model id")
     parser.add_argument("--no_redis", action="store_true", help="Disable Redis")
     parser.add_argument(
@@ -139,6 +142,8 @@ if __name__ == "__main__":
         os.environ["MODEL_REPO_ID"] = args.model_repo_id
     if args.model_type:
         os.environ["MODEL_TYPE"] = args.model_type
+    if args.model_device:
+        os.environ["MODEL_DEVICE"] = args.model_device
     if args.semoss_id:
         os.environ["SEMOSS_ID"] = args.semoss_id
 
