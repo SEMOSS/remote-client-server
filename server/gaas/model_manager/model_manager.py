@@ -4,6 +4,7 @@ import time
 import torch
 import subprocess
 import threading
+import gc
 from transformers import (
     AutoModelForCausalLM,
     AutoModel,
@@ -277,7 +278,7 @@ class ModelManager:
                 "device_map": "auto",
                 "low_cpu_mem_usage": True,
                 # "torch_dtype": torch.float16,
-                "use_safetensors": True,
+                # "use_safetensors": True,
                 "use_auth_token": False,
                 "local_files_only": True,
                 "trust_remote_code": True,
@@ -473,62 +474,82 @@ class ModelManager:
         try:
             logger.info(f"Initializing vision model on device: {self._device}")
 
-            # Load configuration first to determine model type
+            model_kwargs.update(
+                {
+                    "max_memory": {0: "12GiB"},
+                    "torch_dtype": torch.float16,
+                    "low_cpu_mem_usage": True,
+                    "offload_folder": "offload",
+                }
+            )
+
             config = AutoConfig.from_pretrained(
                 model_files_path, trust_remote_code=True
             )
+            logger.info(f"Model type from config: {config.model_type}")
+            logger.info(
+                f"Architecture from config: {config.architectures[0] if hasattr(config, 'architectures') else 'unknown'}"
+            )
 
-            # Detect model architecture type
-            if hasattr(config, "architectures"):
-                architecture = config.architectures[0] if config.architectures else None
-                logger.info(f"Detected model architecture: {architecture}")
+            if "qwen2_vl" in config.model_type.lower():
+                from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer
 
-                if "VL" in architecture or "Vision" in architecture:
-                    # Handle Vision-Language models
-                    from transformers import AutoModelForVision2Seq
+                logger.info("Initializing Qwen2VL model")
 
-                    logger.info(
-                        "Loading as Vision-Language model using AutoModelForVision2Seq"
-                    )
-                    self._model = self.initialize_model_with_flash_attention(
-                        AutoModelForVision2Seq, model_files_path, **model_kwargs
-                    )
-                else:
-                    # Default vision model loading
-                    logger.info(
-                        "Loading as standard vision model using AutoModelForCausalLM"
-                    )
-                    self._model = self.initialize_model_with_flash_attention(
-                        AutoModelForCausalLM, model_files_path, **model_kwargs
-                    )
+                self._model = Qwen2VLForConditionalGeneration.from_pretrained(
+                    model_files_path, **model_kwargs
+                )
 
-            # Load processor/feature extractor
-            logger.info("Attempting to load processor/image processor...")
+                self._tokenizer = AutoTokenizer.from_pretrained(
+                    model_files_path, trust_remote_code=True, padding_side="left"
+                )
+
+                self._processor = AutoProcessor.from_pretrained(
+                    model_files_path, trust_remote_code=True, tokenizer=self._tokenizer
+                )
+
+                logger.info("Qwen2VL model initialized successfully")
+                self._initialized = True
+                return True
+
+            if hasattr(config, "architectures") and any(
+                "VL" in arch for arch in config.architectures
+            ):
+                from transformers import AutoModelForVision2Seq
+
+                logger.info(
+                    "Loading as Vision-Language model using AutoModelForVision2Seq"
+                )
+                self._model = self.initialize_model_with_flash_attention(
+                    AutoModelForVision2Seq, model_files_path, **model_kwargs
+                )
+            else:
+                # Default vision model loading
+                logger.info(
+                    "Loading as standard vision model using AutoModelForCausalLM"
+                )
+                self._model = self.initialize_model_with_flash_attention(
+                    AutoModelForCausalLM, model_files_path, **model_kwargs
+                )
+
+            logger.info("Attempting to load processor...")
             try:
-                # Try loading processor first (preferred for newer models)
                 self._processor = AutoProcessor.from_pretrained(
                     model_files_path, trust_remote_code=True
                 )
                 logger.info("Successfully loaded AutoProcessor")
             except Exception as processor_error:
-                logger.warning(f"AutoProcessor loading failed: {processor_error}")
-                try:
-                    # Fallback to image processor
-                    self._processor = AutoImageProcessor.from_pretrained(
-                        model_files_path, trust_remote_code=True
-                    )
-                    logger.info("Successfully loaded AutoImageProcessor")
-                except Exception as image_processor_error:
-                    logger.error(
-                        f"Both processor loading attempts failed. AutoImageProcessor error: {image_processor_error}"
-                    )
-                    raise
+                logger.error(f"Error loading processor: {processor_error}")
+                raise
 
             if hasattr(config, "vocab_size"):
                 logger.info("Initializing tokenizer for vision-language model")
                 self._tokenizer = Tokenizer().tokenizer
 
-            # Log model device placement
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
             if torch.cuda.is_available():
                 device_id = next(self._model.parameters()).device
                 memory_allocated = torch.cuda.memory_allocated() / 1024**2

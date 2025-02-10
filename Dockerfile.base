@@ -5,7 +5,10 @@ LABEL maintainer="semoss@semoss.org"
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV HOME=/root
-ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+# Separate env vars to try to address memory allocation issues..
+ENV PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128,expandable_segments:True \
+    TRANSFORMERS_CACHE=/app/model_files/.cache \
+    TORCH_CUDA_MEMORY_ALLOCATOR=native
 
 RUN apt-get update && apt-get install -y \
     python3-pip \
