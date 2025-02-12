@@ -496,7 +496,7 @@ class ModelManager:
                 )  # in GB
                 logger.info(f"Total GPU memory: {gpu_memory:.2f} GB")
 
-                inference_buffer = gpu_memory * 0.2
+                inference_buffer = gpu_memory * 0.35
                 model_memory = gpu_memory - inference_buffer
 
                 logger.info(
