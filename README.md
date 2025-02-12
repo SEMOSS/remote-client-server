@@ -120,19 +120,27 @@ The server image (defined in `Dockerfile`) builds upon the base image and adds:
 - Model file management
 - Additional dependencies
 
-Before building the server image, you need to modify the Dockerfile. There are two FROM lines at the top:
-```Dockerfile
-# FROM docker.semoss.org/genai/remote-client-server-base:latest
-FROM remote-client-server-base
-```
-- For production builds, use the first line (pointing to the remote registry)
-- For local development, comment out the first line and uncomment the second line
-- (*IMPORTANT*) When you push changes to the remote repository, remember to switch back to the first line before building the server image.
-
 To build the server image locally:
 ```bash
 docker build -t remote-client-server:latest .
 ```
+### Local Development
+For local development, use the provided build script:
+With Powershell or Unix/MacOS:
+```powershell
+./local_build.sh
+```
+Might need to run ```chmod +x local_build.sh``` if you are on Unix/MacOS.
+
+With Bash:
+```bash
+bash local_build.sh
+```
+
+The script performs the following steps:
+- Builds the base image using the Dockerfile.base if needed
+- Builds the server image using the Dockerfile and local base image
+
 ### Running with Docker Volumes
 To run the container with a volume attached with the model files, first create the volume and then use the following command to start the container with the volume attached. (NOTE: The volume name is `my-volume` in this example, you can name a volume whatever you like).
 ```bash
