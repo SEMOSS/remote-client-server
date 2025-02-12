@@ -4,7 +4,6 @@ import time
 import torch
 import subprocess
 import threading
-import gc
 from transformers import (
     AutoModelForCausalLM,
     AutoModel,
@@ -18,6 +17,7 @@ from model_utils.model_config import get_model_config
 from gaas.tokenizer.tokenizer import Tokenizer
 from gaas.model_manager.model_files_manager import ModelFilesManager
 from globals.globals import set_server_status
+from gaas.model_manager.loaders.vision_loader import VisionModelLoader
 
 logger = logging.getLogger(__name__)
 
@@ -472,124 +472,16 @@ class ModelManager:
     def initialize_vision_model(self, model_files_path, **model_kwargs):
         """Initialize a vision or vision-language model."""
         try:
-            logger.info(f"Initializing vision model on device: {self._device}")
+            vision_loader = VisionModelLoader(self)
+            success = vision_loader.load_vision_model(model_files_path, model_kwargs)
 
-            model_kwargs.update(
-                {
-                    "torch_dtype": torch.float16,
-                    "low_cpu_mem_usage": True,
-                    "offload_folder": "offload",
-                }
-            )
-
-            config = AutoConfig.from_pretrained(
-                model_files_path, trust_remote_code=True
-            )
-            logger.info(f"Model type from config: {config.model_type}")
-            logger.info(
-                f"Architecture from config: {config.architectures[0] if hasattr(config, 'architectures') else 'unknown'}"
-            )
-
-            if torch.cuda.is_available():
-                gpu_memory = torch.cuda.get_device_properties(0).total_memory / (
-                    1024**3
-                )  # in GB
-                logger.info(f"Total GPU memory: {gpu_memory:.2f} GB")
-
-                inference_buffer = gpu_memory * 0.35
-                model_memory = gpu_memory - inference_buffer
-
-                logger.info(
-                    f"Reserving {model_memory:.2f} GB for model, {inference_buffer:.2f} GB for inference"
-                )
-
-                model_kwargs.update(
-                    {
-                        "max_memory": {0: f"{model_memory:.0f}GiB"},
-                    }
-                )
-
-                torch.cuda.set_per_process_memory_fraction(0.95)
-                os.environ["PYTORCH_CUDA_ALLOC_CONF"] = (
-                    "max_split_size_mb:512,expandable_segments:True"
-                )
-
-            if "qwen2_vl" in config.model_type.lower():
-                from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer
-
-                logger.info("Initializing Qwen2VL model")
-
-                self._model = Qwen2VLForConditionalGeneration.from_pretrained(
-                    model_files_path, **model_kwargs
-                )
-
-                self._tokenizer = AutoTokenizer.from_pretrained(
-                    model_files_path, trust_remote_code=True, padding_side="left"
-                )
-
-                self._processor = AutoProcessor.from_pretrained(
-                    model_files_path, trust_remote_code=True, tokenizer=self._tokenizer
-                )
-
-                logger.info("Qwen2VL model initialized successfully")
+            if success:
+                self._model = vision_loader.model
+                self._processor = vision_loader.processor
+                self._tokenizer = vision_loader.tokenizer
                 self._initialized = True
+                logger.info("Vision/Vision-Language Model loaded successfully")
                 return True
-
-            if hasattr(config, "architectures") and any(
-                "VL" in arch for arch in config.architectures
-            ):
-                from transformers import AutoModelForVision2Seq
-
-                logger.info(
-                    "Loading as Vision-Language model using AutoModelForVision2Seq"
-                )
-                self._model = self.initialize_model_with_flash_attention(
-                    AutoModelForVision2Seq, model_files_path, **model_kwargs
-                )
-            else:
-                # Default vision model loading
-                logger.info(
-                    "Loading as standard vision model using AutoModelForCausalLM"
-                )
-                self._model = self.initialize_model_with_flash_attention(
-                    AutoModelForCausalLM, model_files_path, **model_kwargs
-                )
-
-            logger.info("Attempting to load processor...")
-            try:
-                self._processor = AutoProcessor.from_pretrained(
-                    model_files_path, trust_remote_code=True
-                )
-                logger.info("Successfully loaded AutoProcessor")
-            except Exception as processor_error:
-                logger.error(f"Error loading processor: {processor_error}")
-                raise
-
-            if hasattr(config, "vocab_size"):
-                logger.info("Initializing tokenizer for vision-language model")
-                self._tokenizer = Tokenizer().tokenizer
-
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-
-            if torch.cuda.is_available():
-                device_id = next(self._model.parameters()).device
-                logger.info(f"Model loaded on device: {device_id}")
-                memory_allocated = torch.cuda.memory_allocated() / (1024**3)
-                memory_reserved = torch.cuda.memory_reserved() / (1024**3)
-                logger.info(
-                    f"After initialization - Allocated: {memory_allocated:.2f} GB, Reserved: {memory_reserved:.2f} GB"
-                )
-
-                available_memory = gpu_memory - memory_reserved
-                logger.info(
-                    f"Available memory for inference: {available_memory:.2f} GB"
-                )
-
-            self._initialized = True
-            logger.info("Vision/Vision-Language Model loaded successfully")
-            return True
 
         except Exception as e:
             logger.error(f"Failed to initialize vision model: {e}")
