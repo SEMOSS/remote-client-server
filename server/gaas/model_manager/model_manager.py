@@ -476,7 +476,6 @@ class ModelManager:
 
             model_kwargs.update(
                 {
-                    "max_memory": {0: "12GiB"},
                     "torch_dtype": torch.float16,
                     "low_cpu_mem_usage": True,
                     "offload_folder": "offload",
@@ -490,6 +489,30 @@ class ModelManager:
             logger.info(
                 f"Architecture from config: {config.architectures[0] if hasattr(config, 'architectures') else 'unknown'}"
             )
+
+            if torch.cuda.is_available():
+                gpu_memory = torch.cuda.get_device_properties(0).total_memory / (
+                    1024**3
+                )  # in GB
+                logger.info(f"Total GPU memory: {gpu_memory:.2f} GB")
+
+                inference_buffer = gpu_memory * 0.2
+                model_memory = gpu_memory - inference_buffer
+
+                logger.info(
+                    f"Reserving {model_memory:.2f} GB for model, {inference_buffer:.2f} GB for inference"
+                )
+
+                model_kwargs.update(
+                    {
+                        "max_memory": {0: f"{model_memory:.0f}GiB"},
+                    }
+                )
+
+                torch.cuda.set_per_process_memory_fraction(0.95)
+                os.environ["PYTORCH_CUDA_ALLOC_CONF"] = (
+                    "max_split_size_mb:512,expandable_segments:True"
+                )
 
             if "qwen2_vl" in config.model_type.lower():
                 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer
@@ -552,11 +575,17 @@ class ModelManager:
 
             if torch.cuda.is_available():
                 device_id = next(self._model.parameters()).device
-                memory_allocated = torch.cuda.memory_allocated() / 1024**2
-                memory_reserved = torch.cuda.memory_reserved() / 1024**2
                 logger.info(f"Model loaded on device: {device_id}")
-                logger.info(f"GPU Memory allocated: {memory_allocated:.2f} MB")
-                logger.info(f"GPU Memory reserved: {memory_reserved:.2f} MB")
+                memory_allocated = torch.cuda.memory_allocated() / (1024**3)
+                memory_reserved = torch.cuda.memory_reserved() / (1024**3)
+                logger.info(
+                    f"After initialization - Allocated: {memory_allocated:.2f} GB, Reserved: {memory_reserved:.2f} GB"
+                )
+
+                available_memory = gpu_memory - memory_reserved
+                logger.info(
+                    f"Available memory for inference: {available_memory:.2f} GB"
+                )
 
             self._initialized = True
             logger.info("Vision/Vision-Language Model loaded successfully")

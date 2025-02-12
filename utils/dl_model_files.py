@@ -8,9 +8,9 @@ def download_model_files():
     Use the `snapshot_download` function from the `huggingface_hub` library to download the model files locally.
     """
     # change this
-    model_repo_id = "bytedance-research/UI-TARS-7B-DPO"
+    model_repo_id = "bytedance-research/UI-TARS-2B-SFT"
     # change this
-    short_name = "ui-tars-7b-dpo"
+    short_name = "ui-tars-2b-dpo"
 
     # don't change this
     local_model_dir = f"./model_files/{short_name}"

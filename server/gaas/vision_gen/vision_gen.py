@@ -198,7 +198,7 @@ class VisionGen:
             generation_config = self._prepare_generation_config(request)
             logger.info(f"Generation config: {generation_config}")
 
-            with torch.no_grad():
+            with torch.amp.autocast(device_type="cuda"):
                 logger.info(
                     f"Pre-generation memory: {torch.cuda.memory_allocated()/1024**2:.2f}MB"
                 )
@@ -217,10 +217,6 @@ class VisionGen:
                 )
                 logger.info(f"Output shape: {outputs.shape}")
 
-            # Testing some manual memory management
-            del inputs
-            torch.cuda.empty_cache()
-
             generated_text = self.tokenizer.batch_decode(
                 outputs, skip_special_tokens=True, clean_up_tokenization_spaces=True
             )[0]
@@ -235,6 +231,10 @@ class VisionGen:
                 "total_tokens": input_token_length + outputs.shape[1],
             }
             logger.info(f"Token usage: {token_usage}")
+
+            # Testing some manual memory management
+            del inputs
+            torch.cuda.empty_cache()
 
             return {
                 "id": f"chatcmpl-{uuid.uuid4()}",
