@@ -126,15 +126,19 @@ docker build -t remote-client-server:latest .
 ```
 ### Local Development
 For local development, use the provided build script:
-With Powershell or Unix/MacOS:
+With Windows Powershell:
 ```powershell
-./local_build.sh
+./build.ps1
+```
+With Unix/MacOS:
+```powershell
+./build.sh
 ```
 Might need to run ```chmod +x local_build.sh``` if you are on Unix/MacOS.
 
 With Bash:
 ```bash
-bash local_build.sh
+bash build.sh
 ```
 
 The script performs the following steps:
