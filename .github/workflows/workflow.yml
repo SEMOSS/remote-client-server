@@ -39,7 +39,7 @@ jobs:
       - name: Docker Build Application
         run: |
           export DOCKER_TLS_CERTDIR=""
-          docker build . -t ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server:$date
+          docker build . --build-arg BASE_IMAGE=${{ vars.DOCKER_SEMOSS }}/genai/remote-client-server-base:latest -t ${{ vars.DOCKER_PRIVATE }}/genai/remote-client-server:$date
       
       - name: Docker login for DOCKER_SEMOSS
         run: |

@@ -1,5 +1,5 @@
-FROM docker.semoss.org/genai/remote-client-server-base:latest
-# FROM remote-client-server-base
+ARG BASE_IMAGE=remote-client-server-base:latest
+FROM ${BASE_IMAGE}
 
 LABEL maintainer="semoss@semoss.org"
 
