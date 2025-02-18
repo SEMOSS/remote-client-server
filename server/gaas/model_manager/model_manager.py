@@ -280,7 +280,7 @@ class ModelManager:
                 # "torch_dtype": torch.float16,
                 # "use_safetensors": True,
                 "use_auth_token": False,
-                "local_files_only": True,
+                "local_files_only": False,
                 "trust_remote_code": True,
             }
 
@@ -324,7 +324,7 @@ class ModelManager:
                     ),  # Use half precision during loading
                     "use_safetensors": True,  # Faster loading if safetensors are available
                     "use_auth_token": False,  # Ensure we're not trying to download
-                    "local_files_only": True,  # Prevent any download attempts
+                    "local_files_only": False,  # Prevent any download attempts
                     "trust_remote_code": True,
                 }
             )
