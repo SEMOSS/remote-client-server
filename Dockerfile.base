@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+FROM nvidia/cuda:12.1.1-devel-ubuntu22.04  
 
 LABEL maintainer="semoss@semoss.org"
 
@@ -48,7 +48,8 @@ ENV HOME=/root \
 
 RUN uv pip install numpy==1.24.3
 
-RUN uv pip install packaging torch==2.5.1
+RUN uv pip install packaging "torch==2.5.1+cu121" --index-url https://download.pytorch.org/whl/cu121
+
 # RUN uv pip install flash-attn==2.5.6 --no-build-isolation
 
 # Pre-install common dependencies
