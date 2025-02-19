@@ -61,9 +61,6 @@ class VisionModelLoader:
 
         gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)
 
-        inference_buffer = min(gpu_memory * 0.25, 4)  # 25% or 4GB, whichever is smaller
-        model_memory = gpu_memory - inference_buffer
-
         torch.cuda.empty_cache()
         gc.collect()
 
@@ -75,7 +72,6 @@ class VisionModelLoader:
 
         model_kwargs.update(
             {
-                "max_memory": {0: f"{model_memory:.0f}GiB"},
                 "torch_dtype": torch.float16,
                 "low_cpu_mem_usage": True,
             }
@@ -83,9 +79,6 @@ class VisionModelLoader:
 
         logger.info(f"GPU Memory Configuration:")
         logger.info(f"Total GPU Memory: {gpu_memory:.2f}GB")
-        logger.info(f"Reserved for Inference: {inference_buffer:.2f}GB")
-        logger.info(f"Available for Model: {model_memory:.2f}GB")
-
         allocated = torch.cuda.memory_allocated() / (1024**3)
         reserved = torch.cuda.memory_reserved() / (1024**3)
         logger.info(f"Initial GPU Memory State:")
