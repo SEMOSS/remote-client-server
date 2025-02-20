@@ -17,11 +17,17 @@ def get_model_config() -> dict:
     model_repo_id = os.getenv("MODEL_REPO_ID")
     model_type = os.getenv("MODEL_TYPE")
     semoss_id = os.getenv("SEMOSS_ID", "N/A")
+    use_vllm = os.getenv("USE_VLLM", "false").lower() in ("true", "1", "yes")
+
+    if model_type == "text":
+        use_vllm = True
+
     return {
         "model": model.lower(),
         "model_repo_id": model_repo_id,
         "type": model_type.lower(),
         "semoss_id": semoss_id,
+        "use_vllm": use_vllm,
     }
 
 

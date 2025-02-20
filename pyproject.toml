@@ -32,5 +32,6 @@ dependencies = [
     "hf-transfer>=0.1.8",
     "pendulum>=3.0.0",
     "redis[hiredis]>=5.2.1",
+    "vllm>=0.7.2"
 ]
 

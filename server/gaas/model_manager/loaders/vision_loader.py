@@ -100,14 +100,40 @@ class VisionModelLoader:
             logger.info(f"Reserved: {reserved:.2f}GB")
 
     def _load_model_based_on_type(self, config, model_files_path, model_kwargs):
+        """Load model based on its type with specific handling for different architectures"""
         if "qwen2_vl" in config.model_type.lower():
             self._load_qwen_model(model_files_path, model_kwargs)
+        elif config.model_type.lower() == "git":
+            self._load_git_model(model_files_path, model_kwargs)
         elif hasattr(config, "architectures") and any(
             "VL" in arch for arch in config.architectures
         ):
             self._load_vision_language_model(model_files_path, model_kwargs)
         else:
             self._load_standard_vision_model(model_files_path, model_kwargs)
+
+    # For GitForCausalLM models..
+    def _load_git_model(self, model_files_path, model_kwargs):
+        """Initialize GIT model with manual device placement"""
+        logger.info("Loading GIT model")
+
+        git_kwargs = model_kwargs.copy()
+        git_kwargs.pop("device_map", None)
+
+        self._model = AutoModelForCausalLM.from_pretrained(
+            model_files_path, **git_kwargs
+        )
+
+        self._model = self._model.to(self._device)
+
+        logger.info(f"GIT model loaded successfully on device: {self._device}")
+
+        if not self._tokenizer:
+            logger.info("Initializing GIT tokenizer")
+            self._tokenizer = AutoTokenizer.from_pretrained(
+                model_files_path, trust_remote_code=True
+            )
+            logger.info("GIT tokenizer loaded successfully")
 
     def _load_qwen_model(self, model_files_path, model_kwargs):
         """Initialize Qwen2VL model with its tokenizer"""

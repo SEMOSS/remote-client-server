@@ -170,6 +170,9 @@ docker run -p 8888:8888 -e MODEL=gliner-multi-v2-1 -e MODEL_REPO_ID=urchade/glin
 
 - `/metrics` - Returns Prometheus metrics.
 
+## vLLM
+- Text generation models are served using the vLLM library, which provides efficient and scalable inference for large language models. vLLM supports advanced features like dynamic batching, model parallelism, and optimized memory management. This will require you to run the server in a Docker container for text models.
+
 ## Redis
 The server integrates with Redis to maintain deployment status and facilitate scaling operations. Each model deployment is associated with a Redis hash that stores critical operational metrics and status information.
 
