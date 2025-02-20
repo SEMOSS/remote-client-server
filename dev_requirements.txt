@@ -28,3 +28,4 @@ einops
 packaging
 redis[hiredis]
 pendulum
+vllm
