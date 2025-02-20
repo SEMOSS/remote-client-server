@@ -25,6 +25,7 @@ from router.status_route import status_route
 from router.embeddings_route import embeddings_router
 from router.model_load_check_route import model_loaded_check_router
 from router.gpu_status import gpu_status_router
+from gaas.model_manager.vllm_manager import VLLMManager
 
 
 # from router.reclaim_route import reclaim_route
@@ -41,49 +42,64 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # These are start up events... We can add shutdown events below the yield
+    # Download model files
     download_success = await asyncio.to_thread(check_and_download_model_files)
-
     if not download_success:
         logger.error("Failed to download model files")
-        # sys.exit(1)
         yield
         return
-
-    # A singleton class representing the single model loaded into memory
-    model_manager = ModelManager.get_instance()
-    initialized = model_manager.initialize_model()
-    if not initialized:
-        logger.error("Failed to initialize model")
-        # sys.exit(1)
-        yield
-        return
-    else:
-        logger.info("Model initialized successfully")
 
     model_config = get_model_config()
     model_type = model_config.get("type")
-    repo_id = model_config.get("model_repo_id")
+    use_vllm = model_config.get("use_vllm", False)
 
-    if model_type == "image":
-        app.state.gaas = ImageGen(model_name=repo_id)
-    elif model_type == "text":
-        app.state.gaas = Chat(model_manager=model_manager)
-    elif model_type == "ner":
-        app.state.gaas = NERGen(model_manager=model_manager)
-    elif model_type == "embed":
-        app.state.gaas = EmbedGen(model_manager=model_manager)
-    elif model_type == "vision-embed":
-        app.state.gaas = VisionEmbedGen(model_manager=model_manager)
-    elif model_type == "vision":
-        app.state.gaas = VisionGen(model_manager=model_manager)
+    if use_vllm:
+        if model_type != "text":
+            logger.error("vLLM only supports text generation models")
+            yield
+            return
+
+        vllm_manager = VLLMManager.get_instance()
+        initialized = vllm_manager.initialize_engine()
+        if not initialized:
+            logger.error("Failed to initialize vLLM")
+            yield
+            return
+        app.state.engine = vllm_manager.engine
+        logger.info("vLLM engine initialized successfully")
     else:
-        logger.error(f"Unsupported model type: {model_type}")
+        # Original Transformers-based initialization
+        model_manager = ModelManager.get_instance()
+        initialized = model_manager.initialize_model()
+        if not initialized:
+            logger.error("Failed to initialize model")
+            yield
+            return
 
-    app.state.queue_manager = QueueManager(gaas=app.state.gaas)
-    app.state.queue_manager_task = asyncio.create_task(
-        app.state.queue_manager.process_jobs()
-    )
+        # Initialize appropriate model class based on type
+        if model_type == "image":
+            app.state.gaas = ImageGen(model_name=model_config.get("model_repo_id"))
+        elif model_type == "text":
+            app.state.gaas = Chat(model_manager=model_manager)
+        elif model_type == "ner":
+            app.state.gaas = NERGen(model_manager=model_manager)
+        elif model_type == "embed":
+            app.state.gaas = EmbedGen(model_manager=model_manager)
+        elif model_type == "vision-embed":
+            app.state.gaas = VisionEmbedGen(model_manager=model_manager)
+        elif model_type == "vision":
+            app.state.gaas = VisionGen(model_manager=model_manager)
+        else:
+            logger.error(f"Unsupported model type: {model_type}")
+            yield
+            return
+
+        # Initialize queue manager for non-vLLM models
+        app.state.queue_manager = QueueManager(gaas=app.state.gaas)
+        app.state.queue_manager_task = asyncio.create_task(
+            app.state.queue_manager.process_jobs()
+        )
+
     yield
 
 

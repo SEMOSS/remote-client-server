@@ -65,7 +65,7 @@ class VisionGen:
         if model_type in ["qwen2_vl", "qwen2-vl"]:
 
             image_token_id = self.model.config.image_token_id
-            logger.info(f"Using image token ID: {image_token_id}")
+            logger.debug(f"Using image token ID: {image_token_id}")
 
             image_token = getattr(self.processor, "image_token", "<image>")
             formatted_text = f"User: {image_token}{prompt}\nAssistant:"
@@ -79,8 +79,8 @@ class VisionGen:
 
             image_token_id = self.model.config.image_token_id
             num_image_tokens = (inputs["input_ids"] == image_token_id).sum().item()
-            logger.info(f"Image token count after processing: {num_image_tokens}")
-            logger.info(f"Input shape after processing: {inputs['input_ids'].shape}")
+            logger.debug(f"Image token count after processing: {num_image_tokens}")
+            logger.debug(f"Input shape after processing: {inputs['input_ids'].shape}")
 
         else:
             # Non Qwen2VL models for now..
@@ -88,12 +88,12 @@ class VisionGen:
                 images=pil_images, text=prompt, return_tensors="pt", padding=True
             )
 
-        logger.info("Processor output structure:")
+        logger.debug("Processor output structure:")
         for k, v in inputs.items():
             if isinstance(v, torch.Tensor):
-                logger.info(f"Input '{k}' shape: {v.shape}, dtype: {v.dtype}")
+                logger.debug(f"Input '{k}' shape: {v.shape}, dtype: {v.dtype}")
             else:
-                logger.info(f"Input '{k}' type: {type(v)}")
+                logger.debug(f"Input '{k}' type: {type(v)}")
 
         # Move tensors to device with appropriate dtypes
         processed_inputs = {}
@@ -157,8 +157,8 @@ class VisionGen:
             logger.info("Starting vision generation...")
 
             # Log model configuration
-            logger.info(f"Model type: {self.model.config.model_type}")
-            logger.info(
+            logger.debug(f"Model type: {self.model.config.model_type}")
+            logger.debug(
                 f"Model architecture: {self.model.config.architectures[0] if hasattr(self.model.config, 'architectures') else 'unknown'}"
             )
 
@@ -170,33 +170,33 @@ class VisionGen:
                 for content in message.content:
                     if content.type == "image_url" and content.image_url is not None:
                         image_url = content.image_url["url"]
-                        logger.info(f"Processing image URL: {image_url}")
+                        logger.debug(f"Processing image URL: {image_url}")
 
                         if image_url.startswith("data:image"):
                             image_data = image_url.split(",")[1]
-                            logger.info("Extracted base64 data from data URL")
+                            logger.debug("Extracted base64 data from data URL")
                         else:
                             image_data = self.url_to_base64(image_url)
-                            logger.info("Converted URL to base64")
+                            logger.debug("Converted URL to base64")
 
                         if not self._validate_base64_image(image_data):
                             raise ValueError("Invalid image data provided")
-                        logger.info("Image validation successful")
+                        logger.debug("Image validation successful")
 
                     elif content.type == "text" and content.text is not None:
                         prompt = content.text
-                        logger.info(f"Found text prompt: {prompt}")
+                        logger.debug(f"Found text prompt: {prompt}")
             elif isinstance(message.content, str):
                 prompt = message.content
-                logger.info(f"Using string content as prompt: {prompt}")
+                logger.debug(f"Using string content as prompt: {prompt}")
 
             if image_data is None:
                 raise ValueError("No valid image data found in the request")
 
-            logger.info("Processing inputs...")
+            logger.debug("Processing inputs...")
             inputs = self._process_batch([image_data], prompt)
             generation_config = self._prepare_generation_config(request)
-            logger.info(f"Generation config: {generation_config}")
+            logger.debug(f"Generation config: {generation_config}")
 
             with torch.amp.autocast(device_type="cuda"):
                 logger.info(
@@ -204,18 +204,17 @@ class VisionGen:
                 )
 
                 generate_inputs = {**inputs, **generation_config}
-                logger.info("Generate inputs:")
+                logger.debug("Generate inputs:")
                 for k, v in generate_inputs.items():
                     if isinstance(v, torch.Tensor):
-                        logger.info(f"  {k}: tensor of shape {v.shape}")
+                        logger.debug(f"  {k}: tensor of shape {v.shape}")
                     else:
-                        logger.info(f"  {k}: {v}")
+                        logger.debug(f"  {k}: {v}")
 
                 outputs = self.model.generate(**inputs, **generation_config)
                 logger.info(
                     f"Post-generation memory: {torch.cuda.memory_allocated()/1024**2:.2f}MB"
                 )
-                logger.info(f"Output shape: {outputs.shape}")
 
             generated_text = self.tokenizer.batch_decode(
                 outputs, skip_special_tokens=True, clean_up_tokenization_spaces=True
@@ -230,7 +229,7 @@ class VisionGen:
                 "completion_tokens": outputs.shape[1],
                 "total_tokens": input_token_length + outputs.shape[1],
             }
-            logger.info(f"Token usage: {token_usage}")
+            logger.debug(f"Token usage: {token_usage}")
 
             # Testing some manual memory management
             del inputs
