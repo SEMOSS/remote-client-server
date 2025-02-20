@@ -35,6 +35,7 @@ class VLLMManager:
                 gpu_memory_utilization=kwargs.get("gpu_memory_utilization", 0.9),
                 max_num_batched_tokens=kwargs.get("max_num_batched_tokens", 4096),
                 trust_remote_code=True,
+                dtype="float16",
             )
             self._engine = AsyncLLMEngine.from_engine_args(engine_args)
             self._initialized = True
