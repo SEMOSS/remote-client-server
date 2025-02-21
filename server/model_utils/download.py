@@ -7,7 +7,7 @@ import time
 from typing import Set
 from model_utils.model_config import get_model_config
 from globals.globals import set_server_status
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, HfApi
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def get_all_files(directory: str) -> Set[str]:
     return files
 
 
-def check_file_size(filepath: str, min_size_kb: int = 1) -> bool:
+def check_min_file_size(filepath: str, min_size_kb: int = 1) -> bool:
     """Check if file exists and is larger than minimum size."""
     try:
         size_kb = os.path.getsize(filepath) / 1024
@@ -30,7 +30,40 @@ def check_file_size(filepath: str, min_size_kb: int = 1) -> bool:
         return False
 
 
-def verify_download_completion(model_dir: str) -> bool:
+def check_file_size(filepath: str, directory: str, expected_sizes: list) -> bool:
+    """Check if file exists and matches expected size from HF. Skip metadata and cache files"""
+    if filepath.endswith(".metadata") or ".cache" in filepath:
+        return True
+    try:
+        size = os.path.getsize(filepath)
+        filepath = filepath.replace("\\", "/")
+        directory = directory.replace("\\", "/")
+        filename = filepath.removeprefix(directory + "/")
+        if expected_sizes[filename] and size == expected_sizes[filename]:
+            return True
+        else:
+            logger.warning(
+                f"File size mismatch for {filepath}. Wanted {expected_sizes[filename]}, but got {size}"
+            )
+            return False
+    except (OSError, FileNotFoundError):
+        return False
+
+
+def get_expected_file_sizes(repo_id: str) -> dict:
+    """Retrieve expected file sizes from Hugging Face repository metadata."""
+    file_sizes = {}
+    try:
+        model_api = HfApi()
+        model_info = model_api.model_info(repo_id, files_metadata=True)
+        for repo_file in model_info.siblings:
+            file_sizes[repo_file.rfilename] = repo_file.size
+    except Exception as e:
+        logger.error(f"Error retrieving file metadata for {repo_id}: {str(e)}")
+    return file_sizes
+
+
+def verify_download_completion(model_dir: str, expected_sizes: list) -> bool:
     """
     Verify if all model files are completely downloaded and valid.
 
@@ -94,12 +127,27 @@ def verify_download_completion(model_dir: str) -> bool:
             return False
 
         # 4. Validate file sizes
-        large_files = [f for f in all_files if check_file_size(f, min_size_kb=100)]
-        if not large_files:
+        checked_files = [
+            f for f in all_files if check_min_file_size(f, min_size_kb=100)
+        ]
+        if not checked_files:
             logger.error(
                 "No files larger than 100KB found - possible incomplete download"
             )
             return False
+
+        unmatched_files = [
+            f.removeprefix(model_dir)
+            for f in all_files
+            if not check_file_size(f, model_dir, expected_sizes)
+        ]
+
+        if unmatched_files:
+            logger.error(
+                "One or more files didn't match expected size from HF - possible incomplete download"
+            )
+        else:
+            logger.info("All files are equal to the size of respective file in HF repo")
 
         # 5. Try to load and validate config.json if it exists
         config_files = [f for f in all_files if f.endswith("config.json")]
@@ -281,7 +329,9 @@ def download_model_files(
 
 def download_model_files_hf(model_repo_id: str, local_model_dir: str):
     try:
-        snapshot_download(repo_id=model_repo_id, local_dir=local_model_dir)
+        snapshot_download(
+            repo_id=model_repo_id, local_dir=local_model_dir, resume_download=True
+        )
         return True
     except Exception as e:
         logger.error(f"Error during download: {str(e)}")
@@ -319,7 +369,11 @@ def check_and_download_model_files():
 
     # Always verify existing files even if directory exists
     if os.path.exists(local_model_dir) and os.listdir(local_model_dir):
-        if verify_download_completion(local_model_dir):
+        # Get expected file size from HF metadata
+        expected_sizes = get_expected_file_sizes(model_repo_id)
+
+        logger.info("Verifying existing model files...")
+        if verify_download_completion(local_model_dir, expected_sizes):
             logger.info("Existing model files verified successfully")
             set_server_status("ready")
             return True
