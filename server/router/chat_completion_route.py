@@ -7,7 +7,6 @@ import logging
 import time
 from pydantic_models.request_models import ChatCompletionRequest
 from model_utils.model_config import get_model_config
-from vllm.sampling_params import SamplingParams
 
 logger = logging.getLogger(__name__)
 chat_completion_router = APIRouter()
@@ -177,6 +176,8 @@ async def chat_completions(request: Request):
 
     # Handle text models with vLLM if enabled
     elif use_vllm:
+        from vllm.sampling_params import SamplingParams
+
         engine = request.app.state.engine
         sampling_params = SamplingParams(
             temperature=request_model.temperature,

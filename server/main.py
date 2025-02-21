@@ -25,8 +25,6 @@ from router.status_route import status_route
 from router.embeddings_route import embeddings_router
 from router.model_load_check_route import model_loaded_check_router
 from router.gpu_status import gpu_status_router
-from gaas.model_manager.vllm_manager import VLLMManager
-
 
 # from router.reclaim_route import reclaim_route
 from router.chat_completion_route import chat_completion_router
@@ -58,6 +56,8 @@ async def lifespan(app: FastAPI):
             logger.error("vLLM only supports text generation models")
             yield
             return
+
+        from gaas.model_manager.vllm_manager import VLLMManager
 
         vllm_manager = VLLMManager.get_instance()
         initialized = vllm_manager.initialize_engine()
