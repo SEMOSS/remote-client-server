@@ -11,6 +11,8 @@ from transformers import (
     AutoImageProcessor,
     AutoConfig,
     pipeline,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
 )
 from gliner import GLiNER
 from model_utils.model_config import get_model_config
@@ -299,6 +301,8 @@ class ModelManager:
                 )
             elif model_type == "vision":
                 return self.initialize_vision_model(model_files_path, **model_kwargs)
+            elif model_type == "emotion":
+                return self.initialize_emotion_model(model_files_path)
 
         except Exception as e:
             logger.error(f"Failed to initialize model: {e}")
@@ -485,6 +489,24 @@ class ModelManager:
 
         except Exception as e:
             logger.error(f"Failed to initialize vision model: {e}")
+            raise
+    def initialize_emotion_model(self, model_files_path):
+        # """Initialize the emotion classification model."""
+        try:
+            logger.info(f"Initializing Emotion Model on device: {self._device}")
+            # Load tokenizer
+            self._tokenizer = AutoTokenizer.from_pretrained(model_files_path)
+            # Load model
+            self._model = AutoModelForSequenceClassification.from_pretrained(
+                model_files_path
+            ).to(self._device)
+            self._model.eval()
+
+            logger.info("Emotion Model initialized successfully.")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to initialize Emotion model: {e}")
             raise
 
     @property

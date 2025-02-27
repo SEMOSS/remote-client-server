@@ -4,6 +4,7 @@ from pydantic_models.request_models import (
     ImageRequest,
     NERRequest,
     EmbeddingRequest,
+    EmotionRequest
 )
 
 logger = logging.getLogger(__name__)
@@ -44,3 +45,5 @@ def verify_payload(request: dict):
         return EmbeddingRequest(**request)
     elif model_type == "ner":
         return NERRequest(**request)
+    elif model_type == "emotion":
+        return EmotionRequest(**request)

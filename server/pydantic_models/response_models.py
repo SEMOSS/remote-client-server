@@ -17,3 +17,10 @@ class EmbeddingResponse(BaseModel):
     object: str = "list"
     data: List[Dict]
     usage: Dict[str, int]
+
+# ----------------- Emotion Classification -----------------
+class EmotionResponse(BaseModel):
+    text: str
+    emotions: List[dict]  # List of {label: str, confidence: float}
+
+# ----------------- End Emotion Classification -----------------
