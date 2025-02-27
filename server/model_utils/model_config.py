@@ -4,6 +4,8 @@ from pydantic_models.request_models import (
     ImageRequest,
     NERRequest,
     EmbeddingRequest,
+    EmotionRequest
+
 )
 
 logger = logging.getLogger(__name__)
@@ -13,6 +15,7 @@ def get_model_config() -> dict:
     """
     Creates a model config by pulling the model values from the OS environment.
     """
+    print("enter.....................")
     model = os.getenv("MODEL")
     model_repo_id = os.getenv("MODEL_REPO_ID")
     model_type = os.getenv("MODEL_TYPE")
@@ -38,3 +41,5 @@ def verify_payload(request: dict):
         return EmbeddingRequest(**request)
     elif model_type == "ner":
         return NERRequest(**request)
+    elif model_type == "emotion":
+        return EmotionRequest(**request)
