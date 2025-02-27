@@ -15,7 +15,6 @@ def get_model_config() -> dict:
     """
     Creates a model config by pulling the model values from the OS environment.
     """
-    print("enter.....................")
     model = os.getenv("MODEL")
     model_repo_id = os.getenv("MODEL_REPO_ID")
     model_type = os.getenv("MODEL_TYPE")

@@ -27,43 +27,6 @@ class EmotionGen:
             self.model.config.id2label
         )  # This ensures we use the correct emotion names
 
-    # def generate(self, request: EmotionRequest) -> dict:
-    #     """Generate emotion classification results."""
-    #     try:
-    #         logger.info("Starting emotion classification...")
-
-    #         # Tokenize input
-    #         encoded_input = self.tokenizer(
-    #             request.text, return_tensors="pt", truncation=True, padding=True
-    #         ).to(self.device)
-
-    #         with torch.no_grad():
-    #             # Run the model inference
-    #             outputs = self.model(**encoded_input)
-    #             scores = torch.sigmoid(outputs.logits).cpu().tolist()[0]
-    #         print(scores)
-    #         # Convert scores to emotion labels
-    #         emotion_scores = [
-    #             {"label": self.emotion_labels[i], "confidence": score}
-    #             for i, score in enumerate(scores)
-    #             if score >= request.confidence_threshold  # Filter by confidence threshold
-    #         ]
-
-    #         # Sort and filter top emotions
-    #         emotion_scores = sorted(emotion_scores, key=lambda x: x["confidence"], reverse=True)
-    #         top_emotions = emotion_scores[: request.top_k] if not request.return_all_scores else emotion_scores
-
-    #         logger.info(f"Detected emotions: {top_emotions}")
-
-    #         # Convert to dictionary before returning
-    #         return {
-    #             "text": request.text,
-    #             "emotions": top_emotions
-    #         }
-
-    #     except Exception as e:
-    #         logger.error(f"Error during emotion classification: {str(e)}", exc_info=True)
-    #         raise RuntimeError("Failed to classify emotions")
     def generate(self, request: EmotionRequest) -> dict:
         """Generate emotion classification results for single or batch inference."""
         try:

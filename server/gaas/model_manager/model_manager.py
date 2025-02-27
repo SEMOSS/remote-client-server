@@ -495,9 +495,6 @@ class ModelManager:
         # """Initialize the emotion classification model."""
         try:
             logger.info(f"Initializing Emotion Model on device: {self._device}")
-
-            print("model file path ----------------", model_files_path, model_kwargs)
-
             # Load tokenizer
             self._tokenizer = AutoTokenizer.from_pretrained(model_files_path)
             # Load model
