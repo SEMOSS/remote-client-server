@@ -17,3 +17,11 @@ class EmbeddingResponse(BaseModel):
     object: str = "list"
     data: List[Dict]
     usage: Dict[str, int]
+
+
+class SentimentGenResponse(BaseModel):
+    id: str = Field(..., description="Unique Id of the response")
+    object: str
+    created: int = Field(..., description="Created time of the response")
+    model: str = Field(..., description="Used model")
+    sentiment_gen_report: List[Dict]  = Field(..., description="List of generated sentiments with the input texts")
