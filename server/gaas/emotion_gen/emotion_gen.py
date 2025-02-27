@@ -4,6 +4,7 @@ import torch
 
 from gaas.model_manager.model_manager import ModelManager
 
+from gaas.model_manager.model_files_manager import ModelFilesManager
 from pydantic_models.request_models import EmotionRequest
 
 from pydantic_models.response_models import EmotionResponse
@@ -12,12 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 class EmotionGen:
-
     def __init__(self, model_manager: ModelManager):
         self.model_manager = model_manager
         self.device = model_manager.device
         # Initialize the model using ModelManager
-        model_files_path = "SamLowe/roberta-base-go_emotions"
+        model_files_manager = ModelFilesManager()
+        model_files_path = model_files_manager.get_model_files_path()
         self.model_manager.initialize_emotion_model(model_files_path)
         # Load model and tokenizer from ModelManager
         self.tokenizer = model_manager.tokenizer
@@ -37,9 +38,8 @@ class EmotionGen:
             encoded_inputs = self.tokenizer(
                 texts, return_tensors="pt", truncation=True, padding=True
             ).to(self.device)
-
             with torch.no_grad():
-                # Run batch inference
+                # Run model
                 outputs = self.model(**encoded_inputs)
                 scores_batch = torch.sigmoid(outputs.logits).cpu().tolist()
             results = []
@@ -56,7 +56,9 @@ class EmotionGen:
                     else emotion_scores
                 )
 
-                results.append(EmotionResponse(text=text, emotions=top_emotions).model_dump())
+                results.append(
+                    EmotionResponse(text=text, emotions=top_emotions).model_dump()
+                )
             logger.info("Emotion Classification completed successfully.")
 
             return {"results": results}

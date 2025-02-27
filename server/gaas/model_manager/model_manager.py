@@ -302,7 +302,7 @@ class ModelManager:
             elif model_type == "vision":
                 return self.initialize_vision_model(model_files_path, **model_kwargs)
             elif model_type == "emotion":
-                return self.initialize_emotion_model(model_files_path, **model_kwargs)
+                return self.initialize_emotion_model(model_files_path)
 
         except Exception as e:
             logger.error(f"Failed to initialize model: {e}")
@@ -491,7 +491,7 @@ class ModelManager:
             logger.error(f"Failed to initialize vision model: {e}")
             raise
 
-    def initialize_emotion_model(self, model_files_path, **model_kwargs):
+    def initialize_emotion_model(self, model_files_path):
         # """Initialize the emotion classification model."""
         try:
             logger.info(f"Initializing Emotion Model on device: {self._device}")
