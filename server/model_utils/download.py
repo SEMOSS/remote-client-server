@@ -39,13 +39,18 @@ def check_file_size(filepath: str, directory: str, expected_sizes: list) -> bool
         filepath = filepath.replace("\\", "/")
         directory = directory.replace("\\", "/")
         filename = filepath.removeprefix(directory + "/")
-        if expected_sizes[filename] and size == expected_sizes[filename]:
+        if not expected_sizes[filename]:
+            # Return true since no expected size from HF exists
+            logger.warning(f"{filename} did not have a expected size from HF")
+            return True
+        if size == expected_sizes[filename]:
             return True
         else:
             logger.warning(
                 f"File size mismatch for {filepath}. Wanted {expected_sizes[filename]}, but got {size}"
             )
             return False
+
     except (OSError, FileNotFoundError):
         return False
 
@@ -329,9 +334,7 @@ def download_model_files(
 
 def download_model_files_hf(model_repo_id: str, local_model_dir: str):
     try:
-        snapshot_download(
-            repo_id=model_repo_id, local_dir=local_model_dir, resume_download=True
-        )
+        snapshot_download(repo_id=model_repo_id, local_dir=local_model_dir)
         return True
     except Exception as e:
         logger.error(f"Error during download: {str(e)}")
