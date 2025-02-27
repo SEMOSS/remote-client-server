@@ -23,6 +23,17 @@ class NERRequest(BaseModel):
     mask_entities: Optional[List[str]] = []
 
 
+# ----------------- Sentiment Generation -----------------
+
+
+class SentimentGenRequest(BaseModel):
+    model: Optional[str] = None
+    text: Union[str, List[str]]
+
+
+# ----------------- End Sentiment Generation -----------------
+
+
 # ----------------- Chat Completion -----------------
 class Role(str, Enum):
     SYSTEM = "system"
