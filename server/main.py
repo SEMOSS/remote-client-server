@@ -138,8 +138,6 @@ app.include_router(chat_completion_router, prefix="/api")
 app.include_router(embeddings_router, prefix="/api")
 app.include_router(model_loaded_check_router, prefix="/api")
 app.include_router(gpu_status_router, prefix="/api")
-app.include_router(emotion_router, prefix="/api")
-
 app.include_router(metrics_router)
 
 if __name__ == "__main__":

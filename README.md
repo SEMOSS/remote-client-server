@@ -27,6 +27,10 @@ The server is configured to run one model type at a time. The model type is spec
 - **Image**
     - KEY: `image`
     - IE: *PixArt-alpha/PixArt-XL-2-1024-MS*
+- **Emotion**
+    - KEY: `emotion`
+    - IE: *SamLowe/roberta-base-go_emotions*
+
 
 ## Formatting
 - This project uses the [Black](https://black.readthedocs.io/en/stable/) code formatter. Please install the Black formatter in your IDE to ensure consistent code formatting before submitting a PR.
