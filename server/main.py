@@ -16,6 +16,7 @@ from gaas.ner_gen.ner_gen import NERGen
 from gaas.embed_gen.embed_gen import EmbedGen
 from gaas.embed_gen.vision_embed_gen import VisionEmbedGen
 from gaas.vision_gen.vision_gen import VisionGen
+from gaas.emotion_gen.emotion_gen import EmotionGen
 from globals import app_instance
 from router.health_check_route import health_check_router
 from router.generation_route import generation_router
@@ -89,6 +90,8 @@ async def lifespan(app: FastAPI):
             app.state.gaas = VisionEmbedGen(model_manager=model_manager)
         elif model_type == "vision":
             app.state.gaas = VisionGen(model_manager=model_manager)
+        elif model_type == "emotion":
+            app.state.gaas = EmotionGen(model_manager=model_manager)
         else:
             logger.error(f"Unsupported model type: {model_type}")
             yield
@@ -134,7 +137,6 @@ app.include_router(chat_completion_router, prefix="/api")
 app.include_router(embeddings_router, prefix="/api")
 app.include_router(model_loaded_check_router, prefix="/api")
 app.include_router(gpu_status_router, prefix="/api")
-
 app.include_router(metrics_router)
 
 if __name__ == "__main__":

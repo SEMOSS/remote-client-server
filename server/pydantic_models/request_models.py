@@ -91,3 +91,13 @@ class EmbeddingRequest(BaseModel):
 
 
 # ----------------- End Embeddings -----------------
+
+# ----------------- Emotion Classification -----------------
+class EmotionRequest(BaseModel):
+    text: Union[str, List[str]]  # Accept single or multiple texts
+    top_k: Optional[int] = 3
+    confidence_threshold: Optional[float] = 0.0
+    return_all_scores: Optional[bool] = False
+
+
+# ----------------- End Emotion Classification -----------------

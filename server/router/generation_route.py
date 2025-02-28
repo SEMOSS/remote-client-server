@@ -14,13 +14,10 @@ generation_router = APIRouter()
 @generation_router.post("/generate")
 async def http_generate(request: Request):
     logger.info(f"Received HTTP request")
-
     app = request.app
     queue_manager = app.state.queue_manager
-
     request_dict = await request.json()
     request_model = verify_payload(request_dict)
-
     job_id = str(uuid.uuid4())
 
     async def event_stream():
