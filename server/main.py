@@ -26,7 +26,6 @@ from router.status_route import status_route
 from router.embeddings_route import embeddings_router
 from router.model_load_check_route import model_loaded_check_router
 from router.gpu_status import gpu_status_router
-from router.sentiment_gen_route import sentiment_generation_router
 
 # from router.reclaim_route import reclaim_route
 from router.chat_completion_route import chat_completion_router
@@ -138,7 +137,6 @@ app.include_router(chat_completion_router, prefix="/api")
 app.include_router(embeddings_router, prefix="/api")
 app.include_router(model_loaded_check_router, prefix="/api")
 app.include_router(gpu_status_router, prefix="/api")
-app.include_router(sentiment_generation_router, prefix="/api")
 
 app.include_router(metrics_router)
 
