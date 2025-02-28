@@ -299,6 +299,8 @@ class ModelManager:
                 )
             elif model_type == "vision":
                 return self.initialize_vision_model(model_files_path, **model_kwargs)
+            elif model_type == "sentiment":
+                return self.initialize_sentiment_model(model_files_path, **model_kwargs)
 
         except Exception as e:
             logger.error(f"Failed to initialize model: {e}")
@@ -485,6 +487,22 @@ class ModelManager:
 
         except Exception as e:
             logger.error(f"Failed to initialize vision model: {e}")
+            raise
+
+    def initialize_sentiment_model(self, model_files_path, **model_kwargs):
+        """Initialize the sentiment generation model."""
+        try:
+            logger.info(f"model_files_path - {model_files_path}")
+            self._tokenizer = Tokenizer().tokenizer
+            self._model = pipeline(
+                "sentiment-analysis", model=model_files_path, tokenizer=self._tokenizer
+            )
+
+            self._initialized = True
+            logger.info("Sentiment Gen Model loaded successfully.")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize sentiment generation model: {e}")
             raise
 
     @property
